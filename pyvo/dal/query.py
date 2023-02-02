@@ -45,7 +45,6 @@ from .. import samp
 
 from ..utils.decorators import stream_decode_content
 from ..utils.http import use_session
-from ..utils.cloud import CloudRecordMixin
 
 
 class DALService:
@@ -642,7 +641,7 @@ class DALResults:
         return Cursor(self)
 
 
-class Record(Mapping, CloudRecordMixin):
+class Record(Mapping):
     """
     one record from a DAL query result.  The column values are accessible
     as dictionary items.  It also provides special added functions for
@@ -660,7 +659,6 @@ class Record(Mapping, CloudRecordMixin):
                 results.resultstable.array.data[index]
             )
         )
-        self._process_cloud_record()
 
     def __getitem__(self, key):
         try:

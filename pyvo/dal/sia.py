@@ -39,6 +39,7 @@ from astropy.units import Quantity, Unit
 from .query import DALResults, DALQuery, DALService, Record
 from .mimetype import mime2extension
 from .adhoc import DatalinkResultsMixin, DatalinkRecordMixin, SodaRecordMixin
+from ..utils.cloud import CloudRecordMixin
 
 from .. import samp
 
@@ -647,7 +648,7 @@ class SIAResults(DatalinkResultsMixin, DALResults):
         return SIARecord(self, index, session=self._session)
 
 
-class SIARecord(SodaRecordMixin, DatalinkRecordMixin, Record):
+class SIARecord(SodaRecordMixin, DatalinkRecordMixin, Record, CloudRecordMixin):
     """
     a dictionary-like container for data in a record from the results of an
     image (SIA) search, describing an available image.
@@ -659,6 +660,12 @@ class SIARecord(SodaRecordMixin, DatalinkRecordMixin, Record):
     acessible via the ``get(`` *key* ``)`` function (or the [*key*]
     operator) where *key* is table column name.
     """
+    
+    def __init__(self, results, index, session=None):
+        """"""
+        super(SIARecord, self).__init__(results, index, session)
+        self._process_cloud_record()
+        
 
     def getdataformat(self):
         """
