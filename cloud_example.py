@@ -13,20 +13,8 @@ query_url = 'https://heasarc.gsfc.nasa.gov/xamin_aws/vo/sia?table=chanmaster&res
 
 res = pyvo.dal.sia.search(query_url, pos=pos, size=0.0)
 
-print('\n\n++++ Extracting cloud information from the original query result ++++')
+# requesting a row, triggers the cloud information processing
 r = res[0]
+
+# this a summary of the access point
 r.access_points.summary()
-
-# inject s3 column by hand
-from astropy.table import Column
-tab = res.to_table()
-s3 = [x.replace('https://heasarc.gsfc.nasa.gov', 's3://nasa-heasarc') for x in tab['access_url']]
-tab.add_column(Column(s3, name='aws', meta={'ucd':'meta.ref.aws'}))
-res = pyvo.dal.SIAResults(votable.from_table(tab))
-# end injection 
-
-print('\n\n++++ Extracting cloud information after injecting direct s3 address ++++')
-r = res[0]
-r.access_points.summary()
-
-#from IPython import embed; embed()

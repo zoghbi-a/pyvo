@@ -72,6 +72,7 @@ def process_datalinks(record):
     # input parameters for the datalink call
     input_params = pyvo.dal.adhoc._get_input_params_from_resource(dlinks)
     dl_col_id = [p.ref for p in input_params.values() if p.ref is not None]
+    #from IPython import embed; embed();exit(0)
 
     
     access_points = []
@@ -147,18 +148,27 @@ class CloudRecordMixin:
         
         # process the json column if it exists
         json_ap = process_json_column(self)
-        if len(json_ap) == 0: print('--- No json column ---')
+        if len(json_ap) == 0: 
+            print('--- No json column ---')
+        else:
+            print('--- Processed json column ---')
         access_points.add_access_point(json_ap)
         
         # process datalinks if they exist
         dl_ap = process_datalinks(self)
-        if len(dl_ap) == 0: print('--- No datalinks ---')
+        if len(dl_ap) == 0: 
+            print('--- No datalinks ---')
+        else:
+            print('--- Processed datalinks ---')
         access_points.add_access_point(dl_ap)
         
         # look for columns with 'meta.ref.aws', meta.ref.gc etc
         # that simply have cloud uri's
         uri_ap = process_ucds(self)
-        if len(uri_ap) == 0: print('--- No direct uri ---')
+        if len(uri_ap) == 0: 
+            print('--- No direct uri ---')
+        else:
+            print('--- Processed direct uri ---')
         access_points.add_access_point(uri_ap)
         
         self.access_points = access_points
@@ -173,6 +183,13 @@ class CloudRecordMixin:
         
         provier: aws, azure, gc etc
         """
+        
+        # do we have a access_points?
+        try:
+            access_points = self.access_points
+        except AttributeError:
+            self._process_cloud_record()
+        
         for fieldname in self._results.fieldnames:
             field = self._results.getdesc(fieldname)
             if ( field.ucd 
