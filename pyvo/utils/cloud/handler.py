@@ -137,41 +137,42 @@ class CloudRecordMixin:
     def _process_cloud_record(self):
         """prepare cloud information"""
         
-        # add a default on-prem access point
-        access_points = APContainer()
-        url = self.getdataurl()
-        if url is not None:
-            access_points.add_access_point(AccessPoint(url))
-        
-        ## ----------------------- ##
-        ## add cloud access points ##
-        
-        # process the json column if it exists
-        json_ap = process_json_column(self)
-        if len(json_ap) == 0: 
-            print('--- No json column ---')
-        else:
-            print('--- Processed json column ---')
-        access_points.add_access_point(json_ap)
-        
-        # process datalinks if they exist
-        dl_ap = process_datalinks(self)
-        if len(dl_ap) == 0: 
-            print('--- No datalinks ---')
-        else:
-            print('--- Processed datalinks ---')
-        access_points.add_access_point(dl_ap)
-        
-        # look for columns with 'meta.ref.aws', meta.ref.gc etc
-        # that simply have cloud uri's
-        uri_ap = process_ucds(self)
-        if len(uri_ap) == 0: 
-            print('--- No direct uri ---')
-        else:
-            print('--- Processed direct uri ---')
-        access_points.add_access_point(uri_ap)
-        
-        self.access_points = access_points
+        if not hasattr(self, 'access_points'):
+            # add a default on-prem access point
+            access_points = APContainer()
+            url = self.getdataurl()
+            if url is not None:
+                access_points.add_access_point(AccessPoint(url))
+
+            ## ----------------------- ##
+            ## add cloud access points ##
+
+            # process the json column if it exists
+            json_ap = process_json_column(self)
+            if len(json_ap) == 0: 
+                print('--- No json column ---')
+            else:
+                print('--- Processed json column ---')
+            access_points.add_access_point(json_ap)
+
+            # process datalinks if they exist
+            dl_ap = process_datalinks(self)
+            if len(dl_ap) == 0: 
+                print('--- No datalinks ---')
+            else:
+                print('--- Processed datalinks ---')
+            access_points.add_access_point(dl_ap)
+
+            # look for columns with 'meta.ref.aws', meta.ref.gc etc
+            # that simply have cloud uri's
+            uri_ap = process_ucds(self)
+            if len(uri_ap) == 0: 
+                print('--- No direct uri ---')
+            else:
+                print('--- Processed direct uri ---')
+            access_points.add_access_point(uri_ap)
+
+            self.access_points = access_points
         
     
     
