@@ -44,6 +44,21 @@ class APContainer(dict):
         return [ap.id for aplist in self.access_points.values() for ap in aplist]
     
     
+    def uris(self, provider):
+        """Return a list of uri's from the access points 
+        
+        Parameters:
+        -----------
+        provider: str
+            one of prem, aws etc. It dependes on what access point the records provide
+        
+        """
+        if provider not in self.access_points.keys():
+            raise ValueError(f'No access point available for provider {provider}.')
+        
+        return [ap.id for ap in self.access_points[provider]]
+    
+    
     def add_access_point(self, access_point):
         """Add a new AccessPoint to the manager
         

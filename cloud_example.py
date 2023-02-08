@@ -18,3 +18,11 @@ r = res[0]
 
 # this a summary of the access point
 r.access_points.summary()
+
+print('\n-- download from prem --')
+path = r.download('prem')
+print(path)
+
+print('\n-- download from aws --')
+path = r.download('aws')
+print(path)

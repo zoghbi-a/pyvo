@@ -175,13 +175,13 @@ class CloudRecordMixin:
         
     
     
-    def get_cloud_uri(self, provider='aws'):
+    def get_cloud_uris(self, provider='aws'):
         """
         Retrun the cloud uri for the dataset which can be used to retrieve 
         the dataset in this record. None is returne if no cloud information
         is available
         
-        provier: aws, azure, gc etc
+        provider: prem, aws, azure, gc etc
         """
         
         # do we have a access_points?
@@ -189,15 +189,48 @@ class CloudRecordMixin:
             access_points = self.access_points
         except AttributeError:
             self._process_cloud_record()
+            access_points = self.access_points
         
-        for fieldname in self._results.fieldnames:
-            field = self._results.getdesc(fieldname)
-            if ( field.ucd 
-                and "meta.dataset" in field.ucd 
-                and f"meta.ref.{provider}" in field.ucd ):
-                
-                out = self[fieldname]
-                if isinstance(out, bytes):
-                    out = out.decode('utf-8')
-                return out
-        return None
+        return access_points.uris(provider)
+    
+    
+    def download(self, provider='aws'):
+        """
+        Download the data from the given provider
+        
+        Parameters:
+        ----------
+        provider: str
+            prem, aws, azure, gc etc
+        """
+        
+        # do we have a access_points?
+        try:
+            access_points = self.access_points
+        except AttributeError:
+            self._process_cloud_record()
+            access_points = self.access_points
+        if provider not in access_points.access_points.keys():
+            raise ValueError(f'No access point available for provider {provider}.')
+        aps = access_points[provider]
+        path = None
+        msgs = []
+        # return the first access point that is accessible.
+        # if none, print the returned message
+        # TODO: we can make this more sophisticated by selecting
+        # by region etc.
+        for ap in aps:
+            accessible, msg = ap.is_accessible()
+            if accessible:
+                path = ap.download()
+                break
+            else:
+                msgs.append(msg)
+        if path is None:
+            for ap,msg in zip(aps, msgs):
+                print(f'\n{ap}:\n\t*** {msg} ***')
+        return path
+        
+        
+        
+        
