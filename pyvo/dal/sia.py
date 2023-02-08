@@ -39,7 +39,7 @@ from astropy.units import Quantity, Unit
 from .query import DALResults, DALQuery, DALService, Record
 from .mimetype import mime2extension
 from .adhoc import DatalinkResultsMixin, DatalinkRecordMixin, SodaRecordMixin
-from ..utils.cloud import CloudRecordMixin
+from ..utils.cloud import CloudRecordMixin, CloudResultMixin
 
 from .. import samp
 
@@ -575,7 +575,7 @@ class SIAQuery(DALQuery):
         return SIAResults(self.execute_votable(), url=self.queryurl, session=self._session)
 
 
-class SIAResults(DatalinkResultsMixin, DALResults):
+class SIAResults(DatalinkResultsMixin, DALResults, CloudResultMixin):
     """
     The list of matching images resulting from an image (SIA) query.
     Each record contains a set of metadata that describes an available
@@ -664,7 +664,6 @@ class SIARecord(SodaRecordMixin, DatalinkRecordMixin, Record, CloudRecordMixin):
     def __init__(self, results, index, session=None):
         """"""
         super(SIARecord, self).__init__(results, index, session)
-        self._process_cloud_record()
         
 
     def getdataformat(self):

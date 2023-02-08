@@ -1,4 +1,4 @@
 
-from .handler import CloudRecordMixin
+from .handler import CloudRecordMixin, CloudResultMixin
 
-__all__ = ['CloudRecordMixin']
+__all__ = ['CloudRecordMixin', 'CloudResultMixin']
