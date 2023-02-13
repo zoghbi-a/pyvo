@@ -277,7 +277,7 @@ class CloudRecordMixin:
         try:
             access_points = self.access_points
         except AttributeError:
-            self._process_cloud_record()
+            self.enable_cloud()
             access_points = self.access_points
         
         return access_points.uris(provider)
