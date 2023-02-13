@@ -3,6 +3,7 @@
 Cloud-related utils
 """
 import json
+from types import MethodType
 
 from astropy.table import Table, unique
 from astropy.io import votable
@@ -18,6 +19,16 @@ ACCESS_POINTS = [
 ]
 class_mapper = {ap.name: ap for ap in ACCESS_POINTS}
 
+
+def enable_cloud(dalProduct, **kwargs):
+    """Enable cloud features"""
+    
+    isRecord = isinstance(dalProduct, pyvo.dal.Record)
+    
+    mixin = CloudRecordMixin(dalProduct) if isRecord else CloudResultMixin(dalProduct)
+    mixin.enable_cloud(**kwargs)
+    return mixin
+    
 
 def process_json_column(dalProduct, colname='cloud_access', **access_meta):
     """Look for and process any cloud information in a json column
@@ -184,6 +195,20 @@ class CloudRecordMixin:
     Mixin for cloud access functionality
     """
     
+    def __init__(self, record):
+        """Initialize a CloudRecordMxin
+        
+        Parameters
+        ----------
+        record: dal.Record
+        
+        """
+        if not isinstance(record, pyvo.dal.Record):
+            raise TypeError(f'Expected dal.Record but got {type(record)}')
+        self.product = record
+        
+        
+    
     def enable_cloud(self, refresh=False, **kwargs):
         """prepare cloud information
         
@@ -208,14 +233,8 @@ class CloudRecordMixin:
         
         """
                 
-        
-        if (
-            hasattr(self._results, 'access_points') and 
-            self._results.access_points[self._index] is not None
-            and not refresh
-           ):
-            self.access_points = self._results.access_points[self._index]
-        else:
+        record = self.product
+        if not hasattr(self, 'access_points') or refresh:
             
             # extract any access meta information from kwargs
             access_meta = {}
@@ -224,7 +243,7 @@ class CloudRecordMixin:
             
             # add a default on-prem access point
             access_points = APContainer()
-            url = self.getdataurl()
+            url = record.getdataurl()
             if url is not None:
                 access_points.add_access_point(AccessPoint(url))
 
@@ -232,7 +251,7 @@ class CloudRecordMixin:
             ## add cloud access points ##
 
             # process the json column if it exists
-            json_ap = process_json_column(self, **access_meta)
+            json_ap = process_json_column(record, **access_meta)
             if len(json_ap) == 0: 
                 print('--- No json column ---')
             else:
@@ -240,7 +259,7 @@ class CloudRecordMixin:
             access_points.add_access_point(json_ap)
 
             # process datalinks if they exist
-            dl_ap = process_datalinks(self, **access_meta)
+            dl_ap = process_datalinks(record, **access_meta)
             if len(dl_ap) == 0: 
                 print('--- No datalinks ---')
             else:
@@ -249,7 +268,7 @@ class CloudRecordMixin:
 
             # look for columns with 'meta.ref.aws', meta.ref.gc etc
             # that simply have cloud uri's
-            uri_ap = process_ucds(self, **access_meta)
+            uri_ap = process_ucds(record, **access_meta)
             if len(uri_ap) == 0: 
                 print('--- No direct uri ---')
             else:
@@ -257,33 +276,9 @@ class CloudRecordMixin:
             access_points.add_access_point(uri_ap)
 
             self.access_points = access_points
-            
-            if not hasattr(self._results, 'access_points'):
-                self._results.access_points = [None for _ in range(len(self._results))]
-            self._results.access_points[self._index] = access_points
-        
     
     
-    def get_cloud_uris(self, provider='aws'):
-        """
-        Retrun the cloud uri for the dataset which can be used to retrieve 
-        the dataset in this record. None is returne if no cloud information
-        is available
-        
-        provider: prem, aws, azure, gc etc
-        """
-        
-        # do we have a access_points?
-        try:
-            access_points = self.access_points
-        except AttributeError:
-            self.enable_cloud()
-            access_points = self.access_points
-        
-        return access_points.uris(provider)
-    
-    
-    def download(self, provider='aws'):
+    def download(self, provider='aws', **kwargs):
         """
         Download the data from the given provider
         
@@ -291,14 +286,16 @@ class CloudRecordMixin:
         ----------
         provider: str
             prem, aws, azure, gc etc
+            
+        **kwargs for enable_cloud
         """
         
         # do we have a access_points?
         try:
             access_points = self.access_points
         except AttributeError:
-            self.enable_cloud()
-            access_points = self.access_points
+            self.enable_cloud(refresh=False, **kwargs)
+            
         if provider not in access_points.access_points.keys():
             raise ValueError(f'No access point available for provider {provider}.')
         aps = access_points[provider]
@@ -326,6 +323,18 @@ class CloudResultMixin:
     Mixin for cloud access functionality to go along with DALResults
     """
     
+    def __init__(self, result):
+        """Initialize a CloudResultMxin
+        
+        Parameters
+        ----------
+        result: dal.DALResults
+        
+        """
+        if not isinstance(result, pyvo.dal.DALResults):
+            raise TypeError(f'Expected dal.DALResults but got {type(result)}')
+        self.product = result
+    
         
     def enable_cloud(self, refresh=False, **kwargs):
         """prepare cloud information
@@ -350,8 +359,9 @@ class CloudResultMixin:
         
         """
         
+        result = self.product
         if (
-            hasattr(self, 'access_points') and 
+            hasattr(result, 'access_points') and 
             all([ap is not None for ap in self.access_points])
             and not refresh
         ):
@@ -363,11 +373,11 @@ class CloudResultMixin:
             access_meta[ap_name] = apClass.access_meta(**kwargs)
         
         # add a default on-prem access point
-        nrec = len(self)
+        nrec = len(result)
         access_points_list = []
         for irec in range(nrec):
             aps = APContainer()
-            url = self[irec].getdataurl()
+            url = result[irec].getdataurl()
             if url is not None:
                 aps.add_access_point(AccessPoint(url))
             access_points_list.append(aps)
@@ -376,7 +386,7 @@ class CloudResultMixin:
         ## add cloud access points ##
 
         # process the json column if it exists
-        json_ap = process_json_column(self, **access_meta)
+        json_ap = process_json_column(result, **access_meta)
         if json_ap is None or len(json_ap) == 0: 
             print('--- No json column ---')
         else:
@@ -385,7 +395,7 @@ class CloudResultMixin:
                 access_points_list[irec].add_access_point(json_ap[irec])
 
         # process datalinks if they exist
-        dl_ap = process_datalinks(self, **access_meta)
+        dl_ap = process_datalinks(result, **access_meta)
         if dl_ap is None or len(dl_ap) == 0: 
             print('--- No datalinks ---')
         else:
@@ -395,7 +405,7 @@ class CloudResultMixin:
 
         # look for columns with 'meta.ref.aws', meta.ref.gc etc
         # that simply have cloud uri's
-        uri_ap = process_ucds(self, **access_meta)
+        uri_ap = process_ucds(result, **access_meta)
         if uri_ap is None or len(uri_ap) == 0: 
             print('--- No direct uri ---')
         else:
@@ -406,7 +416,7 @@ class CloudResultMixin:
         self.access_points = access_points_list
         
         
-    def download(self, provider='aws'):
+    def download(self, provider='aws', **kwargs):
         """
         Download data for *all* rows from the given provider
         
@@ -415,5 +425,35 @@ class CloudResultMixin:
         provider: str
             prem, aws, azure, gc etc
         """
-        paths = [rec.download(provider) for rec in self]
+        
+        # do we have a access_points?
+        try:
+            access_points = self.access_points
+        except AttributeError:
+            self.enable_cloud(refresh=False, **kwargs)
+        
+        paths = []
+        for ap_entry in access_points:
+            
+            if provider not in ap_entry.access_points.keys():
+                raise ValueError(f'No access point available for provider {provider}.')
+            aps = ap_entry[provider]
+            path = None
+            msgs = []
+            # return the first access point that is accessible.
+            # if none, print the returned message
+            # TODO: we can make this more sophisticated by selecting
+            # by region etc.
+            for ap in aps:
+                accessible, msg = ap.is_accessible()
+                if accessible:
+                    path = ap.download()
+                    break
+                else:
+                    msgs.append(msg)
+            if path is None:
+                for ap,msg in zip(aps, msgs):
+                    print(f'\n{ap}:\n\t*** {msg} ***')
+            paths.append(path)
+
         return paths
