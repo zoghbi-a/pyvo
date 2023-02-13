@@ -4,6 +4,8 @@ from astropy.utils.data import download_file
 import boto3
 import botocore
 import json
+import os
+import threading
 
 from astropy.utils.console import ProgressBarOrSpinner
 from pathlib import Path

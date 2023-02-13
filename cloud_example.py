@@ -54,7 +54,7 @@ paths = res.download('aws')
 ## Use case 3: Working aws credentials. ##
 print('\n-- download from aws with credentials --')
 r = res[0]
-r.enable_cloud(aws_profile='aws_user')
+r.enable_cloud(aws_profile='fornax_user', refresh=True)
 
 path = r.download('aws')
 print(path)
