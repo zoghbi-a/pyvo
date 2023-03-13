@@ -7,6 +7,7 @@ import json
 from astropy.table import Table, unique
 from astropy.io import votable
 import pyvo
+from pyvo.utils import prototype
 
 
 from .ap import APContainer, AccessPoint, AWSAccessPoint
@@ -17,6 +18,10 @@ ACCESS_POINTS = [
     AWSAccessPoint
 ]
 class_mapper = {ap.name: ap for ap in ACCESS_POINTS}
+
+prototype.features['cloud'] = prototype.Feature('cloud',
+                              'https://wiki.ivoa.net/twiki/bin/view/IVOA/Cloud-access',
+                              False)
 
 
 def process_json_column(dalProduct, colname='cloud_access', **access_meta):
@@ -178,7 +183,8 @@ def process_ucds(dalProduct, **access_meta):
         
     return access_points_list
 
-                    
+
+@prototype.prototype_feature('cloud')
 class CloudRecordMixin:
     """
     Mixin for cloud access functionality
@@ -263,7 +269,6 @@ class CloudRecordMixin:
             self._results.access_points[self._index] = access_points
         
     
-    
     def get_cloud_uris(self, provider='aws'):
         """
         Retrun the cloud uri for the dataset which can be used to retrieve 
@@ -321,12 +326,12 @@ class CloudRecordMixin:
         return path
         
 
+@prototype.prototype_feature('cloud')
 class CloudResultMixin:
     """
     Mixin for cloud access functionality to go along with DALResults
     """
     
-        
     def enable_cloud(self, refresh=False, **kwargs):
         """prepare cloud information
         

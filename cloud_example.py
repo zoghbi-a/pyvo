@@ -5,6 +5,7 @@ import os
 #sys.path.insert(0, os.path.dirname(__file__) + '/build/lib/')
 
 import pyvo
+from pyvo.utils import activate_features
 import astropy.coordinates as coord
 from astropy.io import votable
 
@@ -13,12 +14,15 @@ query_url = 'https://heasarc.gsfc.nasa.gov/xamin_aws/vo/sia?table=chanmaster&res
 
 res = pyvo.dal.sia.search(query_url, pos=pos, size=0.0)
 
+# activate the cloud feature of pyvo
+activate_features('cloud')
 
 ## ----------------------------------------- ##
 ## Use case 1: Working with a single Record. ##
 # Calling enable_cloud triggers processing of cloud information
 r = res[0]
 r.enable_cloud()
+
 
 # this is a summary of the access point
 r.access_points.summary()
