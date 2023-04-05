@@ -732,7 +732,6 @@ class Record(Mapping):
                     out = out.decode('utf-8')
                 return out
         return None
-    
 
     def getdataobj(self):
         """

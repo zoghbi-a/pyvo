@@ -660,11 +660,6 @@ class SIARecord(SodaRecordMixin, DatalinkRecordMixin, Record, CloudRecordMixin):
     acessible via the ``get(`` *key* ``)`` function (or the [*key*]
     operator) where *key* is table column name.
     """
-    
-    def __init__(self, results, index, session=None):
-        """"""
-        super(SIARecord, self).__init__(results, index, session)
-        
 
     def getdataformat(self):
         """
