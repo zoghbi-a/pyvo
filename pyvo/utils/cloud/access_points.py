@@ -59,8 +59,8 @@ class AccessPoint:
                 ('This is not meant to be called directly. '
                  'Subclasses need to overrride')
             )
-        else:
-            return self._accessible
+        
+        return self._accessible
         
     
     def download(self):
@@ -82,7 +82,7 @@ class AccessPoint:
 class PREMAccessPoint(AccessPoint):
     """Handle an http(s) access point from on-prem servers"""
     
-    def __init__(self, url=None):
+    def __init__(self, url):
         """Initialize an http access point from on-prem data center
         
         Parameters
@@ -113,8 +113,8 @@ class PREMAccessPoint(AccessPoint):
             accessible = response.status_code == 200
             msg = '' if accessible else response.reason
             self._accessible = (accessible, msg)
-        else:
-            return self._accessible
+        
+        return self._accessible
         
     
     def download(self, cache=True):
