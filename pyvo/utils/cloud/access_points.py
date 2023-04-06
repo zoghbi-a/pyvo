@@ -21,25 +21,25 @@ class AccessPoint:
     
     """
     
-    def __init__(self, name=None, id=None):
+    def __init__(self, provider=None, id=None):
         """Initialize a basic access point with some id
         
         Parameters
         ----------
-        name: str
-            The name of the access point. e.g. prem, aws etc.
+        provider: str
+            The name of the access point provider. e.g. prem, aws etc.
         id : str
             a unique id for this access point. Typically, the url.
         
         """
         
         self.id = id
-        self.name = None
+        self.provider = None
         self._accessible = None
     
     
     def __repr__(self):
-        return f'|{self.name.ljust(5)}| {self.id}'
+        return f'|{self.provider.ljust(5)}| {self.id}'
     
     
     @property
@@ -91,7 +91,7 @@ class PREMAccessPoint(AccessPoint):
             the url to access the data
         
         """
-        super().__init__(name='prem', id=url)
+        super().__init__(provider='prem', id=url)
         self.url = url
 
         
@@ -192,7 +192,7 @@ class AWSAccessPoint(AccessPoint):
             key = '/'.join(_uri[3:])
             
         
-        super().__init__(name='aws', id=uri)
+        super().__init__(provider='aws', id=uri)
         
         self.s3_uri = uri
         self.s3_bucket_name = bucket_name
@@ -228,6 +228,7 @@ class AWSAccessPoint(AccessPoint):
         
         return s3_resource
     
+    
     @property
     def accessible(self):
         """Check if the data is accessible
@@ -254,7 +255,6 @@ class AWSAccessPoint(AccessPoint):
             self._accessible = (accessible, msg)
                 
         return self._accessible
-    
     
     
     # adapted from astroquery.mast.
