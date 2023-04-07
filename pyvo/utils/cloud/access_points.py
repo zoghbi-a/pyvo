@@ -10,7 +10,112 @@ import os
 from astropy.utils.console import ProgressBarOrSpinner
 
 
-__all__ = ['PREMAccessPoint', 'AWSAccessPoint']
+__all__ = ['AccessPointContainer', 'PREMAccessPoint', 'AWSAccessPoint']
+
+
+ACCESS_CLASS_MAPPER = {
+    ap.provider: ap for ap in [
+        PREMAccessPoint,
+        AWSAccessPoint
+    ]
+}
+
+
+class AccessPointContainer(dict):
+    """A container and manager for AccessPoint(s)
+    
+    This is a simple dict that holds the access points for some
+    data product
+    
+    
+    """
+    
+    def __init__(self, *args):
+        """Initilize a conatiner with some access point(s).
+        
+        Parameters
+        ----------
+        *args: AccessPoint or a subclass
+            A single or multiple access points
+            
+        """
+        self.access_points = dict()
+        for ap in args:
+            if isinstance(ap, AccessPoint):
+                self.add_access_point(ap)
+            else:
+                raise ValueError(f'Expected a subclass of AccessPoint, not {type(ap)}')
+                
+                
+    def add_access_point(self, access_point):
+        """Add a new AccessPoint (or subclass) to the conatiner
+        
+        Parameters:
+        -----------
+        access_point: a subclass of AccessPoint, or a list of them.
+            the access point to be added to the manager
+                
+        """
+        
+        # if a list, loop through the elements
+        if isinstance(access_point, list):
+        
+            for ap in access_point:
+                self.add_access_point(ap)
+        
+        else:
+            
+            # we have a single instance
+            # First check we have the correct type
+            if not isinstance(access_point, AccessPoint):
+                raise ValueError(
+                    f'Expected an AccessApoint instance, '
+                    f'a subclass or a list not {type(access_point)}'
+                )
+
+            provider = access_point.provider
+            
+            # first time
+            if not provider in self.access_points.keys():
+                self.access_points[provider] = []
+            
+            # adding an access point if it has not been added already
+            if not access_point.id in self.ids(provider):
+                self.access_points[provider].append(access_point)
+                
+    
+    def ids(self, provider=None):
+        """Return a list of id's from the access points. 
+        
+        Parameters:
+        -----------
+        provider: str, a list of str or None
+            provider name (prem, aws, etc). If None, return all providers.
+        
+        """
+        
+        if provider is None:
+            provider = [k for k in self.access_points.keys()]
+        
+        if isinstance(provider, str):
+            provider = [provider]
+            
+        if not isinstance(provider, list):
+            raise ValueError('provider has to be a str, a list of str or None')
+            
+        ids = [ap.id for prov in provider for ap in self.access_points[prov]]
+        
+        return ids
+    
+    
+    def __repr__(self):
+        summary = ', '.join([f'{k}:{len(g)}' for k,g in self.access_points.items()])
+        return f'<Access: {summary}>'
+    
+    
+    def __getitem__(self, item):
+        """Enable access to the access_points list directly"""
+        return self.access_points[item]
 
 
 class AccessPoint:
@@ -34,12 +139,12 @@ class AccessPoint:
         """
         
         self.id = id
-        self.provider = None
+        self.provider = provider
         self._accessible = None
     
     
     def __repr__(self):
-        return f'|{self.provider.ljust(5)}| {self.id}'
+        return f'|{str(self.provider).ljust(5)}| {self.id}'
     
     
     @property

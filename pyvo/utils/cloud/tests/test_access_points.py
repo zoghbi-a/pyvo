@@ -2,7 +2,10 @@ import unittest
 import pytest
 import os
 
-from pyvo.utils.cloud.access_points import AccessPoint, PREMAccessPoint, AWSAccessPoint
+from pyvo.utils.cloud.access_points import (
+    AccessPoint, PREMAccessPoint, AWSAccessPoint, 
+    AccessPointContainer
+)
 
 
     
@@ -75,4 +78,35 @@ class TestAWSAccessPoint(unittest.TestCase):
         ap = AWSAccessPoint(bucket_name='bucket2', key='key/file')
         self.assertEqual(ap.s3_bucket_name, 'bucket2')
         
+
+class TestAccessPointContainer(unittest.TestCase):
+    """Tests AccessPointContainer"""
+    
+    def test_wrong_arg(self):
+        with self.assertRaises(ValueError):
+            apc = AccessPointContainer('str')
+    
+    def test_1_arg(self):
+        ap  = AccessPoint()
+        apc = AccessPointContainer(ap)
+        self.assertEqual(len(apc.access_points), 1)
+    
+    def test_2_arg(self):
+        ap1 = AccessPoint()
+        ap2 = PREMAccessPoint(url='http://some/url')
+        apc = AccessPointContainer(ap1, ap2)
+        self.assertEqual(len(apc.access_points), 2)
         
+    def test_2_arg_same_ap(self):
+        ap1 = PREMAccessPoint(url='http://some/url')
+        ap2 = PREMAccessPoint(url='http://some/url2')
+        apc = AccessPointContainer(ap1, ap2)
+        self.assertEqual(len(apc.access_points), 1)
+        self.assertEqual(len(list(apc.access_points.values())[0]), 2)
+        
+    def test_2_arg_repeat_id(self):
+        ap1 = PREMAccessPoint(url='http://some/url')
+        ap2 = PREMAccessPoint(url='http://some/url')
+        apc = AccessPointContainer(ap1, ap2)
+        self.assertEqual(len(apc.access_points), 1)
+        self.assertEqual(len(list(apc.access_points.values())[0]), 1)
