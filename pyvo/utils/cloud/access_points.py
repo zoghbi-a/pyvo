@@ -10,15 +10,8 @@ import os
 from astropy.utils.console import ProgressBarOrSpinner
 
 
-__all__ = ['AccessPointContainer', 'PREMAccessPoint', 'AWSAccessPoint']
+__all__ = ['ACCESS_MAP', 'AccessPointContainer', 'PREMAccessPoint', 'AWSAccessPoint']
 
-
-ACCESS_CLASS_MAPPER = {
-    ap.provider: ap for ap in [
-        PREMAccessPoint,
-        AWSAccessPoint
-    ]
-}
 
 
 class AccessPointContainer(dict):
@@ -126,20 +119,25 @@ class AccessPoint:
     
     """
     
-    def __init__(self, provider=None, id=None):
+    provider = None
+    
+    
+    def __init__(self, id=None, **kwargs):
         """Initialize a basic access point with some id
         
         Parameters
         ----------
-        provider: str
-            The name of the access point provider. e.g. prem, aws etc.
         id : str
             a unique id for this access point. Typically, the url.
+            
+        Keywords
+        --------
+        place holder for keyword argument that may be needed such
+        auth authentication.
         
         """
         
         self.id = id
-        self.provider = provider
         self._accessible = None
     
     
@@ -187,16 +185,24 @@ class AccessPoint:
 class PREMAccessPoint(AccessPoint):
     """Handle an http(s) access point from on-prem servers"""
     
-    def __init__(self, url):
+    
+    provider = 'prem'
+    
+    
+    def __init__(self, url, **kwargs):
         """Initialize an http access point from on-prem data center
         
         Parameters
         ----------
         url : str
             the url to access the data
+            
+        Keywords
+        --------
+        None is expected
         
         """
-        super().__init__(provider='prem', id=url)
+        super().__init__(id=url)
         self.url = url
 
         
@@ -248,12 +254,14 @@ class AWSAccessPoint(AccessPoint):
     """Handles a single access point on AWS"""
     
     
+    provider = 'aws'
+    
+    
     def __init__(self, *, 
                  bucket_name = None, 
                  key = None,
                  uri = None,
-                 region = None,
-                 aws_profile = None
+                 **kwargs
                 ):
         """Define an access point for aws.
         Either uri or both bucket_name/key need to be given
@@ -264,13 +272,20 @@ class AWSAccessPoint(AccessPoint):
             name of the s3 bucket
         key: str
             the key or 'path' to the file or directory
-        region : str
-            region of the bucket.
+        uri : str
+            uri for the data of the form s3://bucket/key. Either this should
+            be given, or the combination of bucket_name/key.
+            
+        Keywords
+        --------
         aws_profile : str
             name of the user's profile for credentials in ~/.aws/config
             or ~/.aws/credentials. Use to authenticate the AWS user with boto3.
         
         """
+        
+        aws_profile = kwargs.get('aws_profile', None)
+        
         
         if uri is None:
             
@@ -297,12 +312,11 @@ class AWSAccessPoint(AccessPoint):
             key = '/'.join(_uri[3:])
             
         
-        super().__init__(provider='aws', id=uri)
+        super().__init__(id=uri)
         
         self.s3_uri = uri
         self.s3_bucket_name = bucket_name
         self.s3_key = key
-        self.region = region
         
         
         # prepare the s3 resource
@@ -421,3 +435,11 @@ class AWSAccessPoint(AccessPoint):
 
             bkt.download_file(key, local_path, Callback=progress_callback)
         return local_path
+    
+    
+ACCESS_MAP = {
+    ap.provider: ap for ap in [
+        PREMAccessPoint,
+        AWSAccessPoint
+    ]
+}
