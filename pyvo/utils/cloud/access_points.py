@@ -73,11 +73,11 @@ class AccessPointContainer(dict):
                 self.access_points[provider] = []
             
             # adding an access point if it has not been added already
-            if not access_point.id in self.ids(provider):
+            if not access_point.uid in self.uids(provider):
                 self.access_points[provider].append(access_point)
                 
     
-    def ids(self, provider=None):
+    def uids(self, provider=None):
         """Return a list of id's from the access points. 
         
         Parameters:
@@ -96,9 +96,9 @@ class AccessPointContainer(dict):
         if not isinstance(provider, list):
             raise ValueError('provider has to be a str, a list of str or None')
             
-        ids = [ap.id for prov in provider for ap in self.access_points[prov]]
+        uids = [ap.uid for prov in provider for ap in self.access_points[prov]]
         
-        return ids
+        return uids
     
     
     def __repr__(self):
@@ -122,12 +122,12 @@ class AccessPoint:
     provider = None
     
     
-    def __init__(self, id=None, **kwargs):
+    def __init__(self, uid=None, **kwargs):
         """Initialize a basic access point with some id
         
         Parameters
         ----------
-        id : str
+        uid : str
             a unique id for this access point. Typically, the url.
             
         Keywords
@@ -137,12 +137,12 @@ class AccessPoint:
         
         """
         
-        self.id = id
+        self.uid = uid
         self._accessible = None
     
     
     def __repr__(self):
-        return f'|{str(self.provider).ljust(5)}| {self.id}'
+        return f'|{str(self.provider).ljust(5)}| {self.uid}'
     
     
     @property
@@ -189,21 +189,21 @@ class PREMAccessPoint(AccessPoint):
     provider = 'prem'
     
     
-    def __init__(self, url, **kwargs):
+    def __init__(self, uid, **kwargs):
         """Initialize an http access point from on-prem data center
         
         Parameters
         ----------
-        url : str
-            the url to access the data
+        uid : str
+            the unique id in the form of the url to access the data
             
         Keywords
         --------
         None is expected
         
         """
-        super().__init__(id=url)
-        self.url = url
+        super().__init__(uid=uid)
+        self.url = uid
 
         
     @property
@@ -260,11 +260,11 @@ class AWSAccessPoint(AccessPoint):
     def __init__(self, *, 
                  bucket_name = None, 
                  key = None,
-                 uri = None,
+                 uid = None,
                  **kwargs
                 ):
         """Define an access point for aws.
-        Either uri or both bucket_name/key need to be given
+        Either uid (uri) or both bucket_name/key need to be given
         
         Parameters
         ----------
@@ -272,9 +272,9 @@ class AWSAccessPoint(AccessPoint):
             name of the s3 bucket
         key: str
             the key or 'path' to the file or directory
-        uri : str
-            uri for the data of the form s3://bucket/key. Either this should
-            be given, or the combination of bucket_name/key.
+        uid : str
+            a unique id in the form of uri for the data of the form s3://bucket/key. 
+            Either this should be given, or the combination of bucket_name/key.
             
         Keywords
         --------
@@ -287,11 +287,11 @@ class AWSAccessPoint(AccessPoint):
         aws_profile = kwargs.get('aws_profile', None)
         
         
-        if uri is None:
+        if uid is None:
             
             # when uri is None, we need both bucket_name and key
             if bucket_name is None or key is None:
-                raise ValueError('either uri or both bucket_name and key are required')
+                raise ValueError('either uid or both bucket_name and key are required')
                 
             # both bucket_name and key need to be str
             assert(isinstance(bucket_name, str))
@@ -300,19 +300,19 @@ class AWSAccessPoint(AccessPoint):
             if key[0] == '/':
                 key = key[1:]
             
-            uri = f's3://{bucket_name}/{key}'
+            uid = f's3://{bucket_name}/{key}'
             
         else:
-            if not uri.startswith('s3://'):
-                raise ValueError('uri needs to be of the form "s3://bucket/key"')
+            if not uid.startswith('s3://'):
+                raise ValueError('uid needs to be of the form "s3://bucket/key"')
                 
-            # TODO: handle case of region in the uri
-            _uri = uri.split('/')
+            # TODO: handle case of region in the uid/uri
+            _uri = uid.split('/')
             bucket_name = _uri[2]
             key = '/'.join(_uri[3:])
             
-        
-        super().__init__(id=uri)
+        uri = uid
+        super().__init__(uid=uid)
         
         self.s3_uri = uri
         self.s3_bucket_name = bucket_name

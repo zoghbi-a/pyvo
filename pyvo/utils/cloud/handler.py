@@ -11,7 +11,7 @@ import pyvo
 from pyvo.dal import Record, DALResults
 
 
-from .access_points import ACCESS_MAP
+from .access_points import ACCESS_MAP, AccessPointContainer
 
 
 def generate_access_points(product, mode='all', **kwargs):
@@ -59,22 +59,25 @@ def generate_access_points(product, mode='all', **kwargs):
         rows = [_ for _ in product]
     
     
+    json_ap, ucd_ap, dl_ap = [], [], []
+    
     if mode in ['json', 'all']:
         json_ap = process_cloud_json(rows, **kwargs)
-        #print(json_ap)
     
     # proceed to ucd or datalinks only when dealing with pyvo Record.
     if isinstance(rows[0], Record):
         
         if mode in ['ucd', 'all']:
             ucd_ap = process_cloud_ucd(rows, **kwargs)
-            #print(ucd_ap)
     
         if mode in ['datalink', 'all']:
             query_result = rows[0]._results
             dl_ap = process_cloud_datalinks(rows, query_result)
-            print(dl_ap)
     
+    ap_list = json_ap + ucd_ap + dl_ap
+    ap_list = [i for j in ap_list for i in j]
+    access_points = AccessPointContainer(*ap_list)
+    print(access_points.uids())
     
         
 
@@ -162,7 +165,7 @@ def process_cloud_ucd(products, **kwargs):
             
             uri = row.getbyucd(f'meta.ref.{provider}')
             if uri is not None:
-                new_ap = APClass(uri=uri, **kwargs)
+                new_ap = APClass(uid=uri, **kwargs)
                 apoints.append(new_ap)
         
         rows_access_points.append(apoints)
@@ -237,10 +240,9 @@ def process_cloud_datalinks(products, query_result, provider_par='source', **kwa
 
             # TODO: consider including batch_size simialr to 
             # DatalinkResultsMixin.iter_datalinks
-            provider = {provider_par:option}
             query = pyvo.dal.adhoc.DatalinkQuery.from_resource(
                 products, _datalink, 
-                **provider
+                **{provider_par:option}
             )
             
             dl_result = query.execute()
@@ -249,12 +251,13 @@ def process_cloud_datalinks(products, query_result, provider_par='source', **kwa
             if len(rows_access_points) == 0:
                 rows_access_points = [[] for _ in products]
                 
-            ap_type = option.split(':')[0]
-            for provider, APClass in ACCESS_MAP.items():
+            provider = option.split(':')[0]
+            if provider in ACCESS_MAP.keys():
+                APClass = ACCESS_MAP[provider]
                 for irow in range(nrows):
                     dl_res = dl_table[dl_table['ID'] == products[irow][dl_col_id[0]]]
                     for dl_row in dl_res:
-                        new_ap = APClass(uri=dl_row['access_url'], **kwargs)
-                        rows_access_points[irow].append(ap)
+                        new_ap = APClass(uid=dl_row['access_url'], **kwargs)
+                        rows_access_points[irow].append(new_ap)
     
     return rows_access_points
