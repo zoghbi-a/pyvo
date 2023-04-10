@@ -7,13 +7,14 @@ Cloud-related utils
 import json
 
 from astropy.table import Table, Row
+import pyvo
 from pyvo.dal import Record, DALResults
 
 
 from .access_points import ACCESS_MAP
 
 
-def generate_cloud_access_points(product, mode='all', **kwargs):
+def generate_access_points(product, mode='all', **kwargs):
     """Process cloud-related information in a data product
     
     Parameters
@@ -41,7 +42,7 @@ def generate_cloud_access_points(product, mode='all', **kwargs):
     
     if not isinstance(product, (Record, DALResults, Table, Row)):
         raise ValueError((
-            f'product has the wrong type. Execting dal.Record, '
+            f'product has the wrong type. Expecting dal.Record, '
             f'dal.DALResults, Table or Row. Found {type(product)}'
         ))
     
@@ -60,18 +61,19 @@ def generate_cloud_access_points(product, mode='all', **kwargs):
     
     if mode in ['json', 'all']:
         json_ap = process_cloud_json(rows, **kwargs)
-        print(json_ap)
+        #print(json_ap)
     
     # proceed to ucd or datalinks only when dealing with pyvo Record.
     if isinstance(rows[0], Record):
         
         if mode in ['ucd', 'all']:
             ucd_ap = process_cloud_ucd(rows, **kwargs)
-            print(ucd_ap)
+            #print(ucd_ap)
     
-        #if mode in ['datalink', 'all']:
-        #    dl_ap = process_cloud_dlinks(rows, product)
-        
+        if mode in ['datalink', 'all']:
+            query_result = rows[0]._results
+            dl_ap = process_cloud_datalinks(rows, query_result)
+            print(dl_ap)
     
     
         
@@ -118,6 +120,7 @@ def process_cloud_json(products, colname='cloud_access', **kwargs):
             
             # access point parameters
             ap_params = jsonDict[provider]
+            ap_params.update(**kwargs)
             new_ap = APClass(**ap_params)
             apoints.append(new_ap)
             
@@ -125,7 +128,7 @@ def process_cloud_json(products, colname='cloud_access', **kwargs):
     return rows_access_points
 
 
-def process_cloud_ucd(products, colname='cloud_access', **kwargs):
+def process_cloud_ucd(products, **kwargs):
     """Look for and process any cloud information in columns
     with ucd of the form: 'meta.ref.{provider}', where provider
     is: aws, gc, azure etc.
@@ -164,4 +167,94 @@ def process_cloud_ucd(products, colname='cloud_access', **kwargs):
         
         rows_access_points.append(apoints)
 
+    return rows_access_points
+
+
+def process_cloud_datalinks(products, query_result, provider_par='source', **kwargs):
+    """Look for and process any cloud information in datalinks
+    
+    Note that products needs to be a pyvo.dal.Record. astropy
+    table Row objects do not handle datalinks.
+    
+    Parameters
+    ----------
+    products: list
+        A list of dal.Record
+    query_result: pyvo.dal.DALResults
+        The original query results that will be used to find
+        datalinks and call them.
+    provider_par: str
+        The name of the parameter that will passed with the
+        datalink call to specify the provider
+        
+    
+    Keywords
+    --------
+    meta data needed to download the data, such as authentication profile
+    which will be used to create access points. 
+        
+        
+    Return
+    ------
+    A list of AccessPoint instances for every row in products
+    
+    """
+    
+    if not isinstance(query_result, DALResults):
+        raise ValueError((
+            f'query_result has the wrong type. Expecting '
+            f'dal.DALResults. Found {type(query_result)}'
+        ))
+    
+    rows_access_points = []
+    
+    # get datalink service
+    try:
+        _datalink = query_result.get_adhocservice_by_ivoid(
+            'ivo://ivoa.net/std/datalink'
+        )
+    except (pyvo.DALServiceError, AttributeError):
+        # No datalinks; return
+        return rows_access_points
+    
+    nrows = len(products)
+    
+    # input parameters for the datalink call
+    in_params = pyvo.dal.adhoc._get_input_params_from_resource(_datalink)
+    dl_col_id = [p.ref for p in in_params.values() if p.ref is not None]
+    
+    # proceed only if we have a PARAM named provider_par, 
+    if provider_par in in_params.keys():
+        # we have a 'source' element, process it
+        provider_elem  = in_params[provider_par]
+        
+        # list the available providers in the `provider_par` element:
+        provider_options = provider_elem.values.options
+        
+        
+        for description,option in provider_options:
+
+
+            # TODO: consider including batch_size simialr to 
+            # DatalinkResultsMixin.iter_datalinks
+            provider = {provider_par:option}
+            query = pyvo.dal.adhoc.DatalinkQuery.from_resource(
+                products, _datalink, 
+                **provider
+            )
+            
+            dl_result = query.execute()
+            dl_table = dl_result.to_table()
+            
+            if len(rows_access_points) == 0:
+                rows_access_points = [[] for _ in products]
+                
+            ap_type = option.split(':')[0]
+            for provider, APClass in ACCESS_MAP.items():
+                for irow in range(nrows):
+                    dl_res = dl_table[dl_table['ID'] == products[irow][dl_col_id[0]]]
+                    for dl_row in dl_res:
+                        new_ap = APClass(uri=dl_row['access_url'], **kwargs)
+                        rows_access_points[irow].append(ap)
+    
     return rows_access_points
