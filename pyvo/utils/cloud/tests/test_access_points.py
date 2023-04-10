@@ -4,7 +4,7 @@ import os
 
 from pyvo.utils.cloud.access_points import (
     AccessPoint, PREMAccessPoint, AWSAccessPoint, 
-    AccessPointContainer
+    AccessPointContainer, ACCESS_MAP
 )
 
 
@@ -83,6 +83,14 @@ class TestAWSAccessPoint(unittest.TestCase):
         
         ap = AWSAccessPoint(bucket_name='bucket2', key='key/file')
         self.assertEqual(ap.s3_bucket_name, 'bucket2')
+
+        
+class TestACCESS_MAP(unittest.TestCase):
+    """Tests ACCESS_MAP"""
+        
+    def test_content(self):
+        for provider,apClass in ACCESS_MAP.items():
+            self.assertEqual(provider, apClass.provider)
         
 
 class TestAccessPointContainer(unittest.TestCase):
