@@ -34,6 +34,9 @@ class TestPREMAccessPoint(unittest.TestCase):
         
     def test_id(self):
         self.assertEqual(self.ap.id, self.url)
+        
+    def test_provider(self):
+        self.assertEqual(PREMAccessPoint.provider, 'prem')
     
     @pytest.mark.remote_data
     def test_accessible(self):
@@ -48,6 +51,9 @@ class TestPREMAccessPoint(unittest.TestCase):
         
 class TestAWSAccessPoint(unittest.TestCase):
     """Tests AWSAccessPoint"""
+    
+    def test_provider(self):
+        self.assertEqual(AWSAccessPoint.provider, 'aws')
     
     def test_uri_is_None(self):
         """uri is None"""
