@@ -79,7 +79,6 @@ def generate_access_points(product, mode='all', **kwargs):
     access_points = AccessPointContainer(*ap_list)
     print(access_points.uids())
     
-        
 
 def process_cloud_json(products, colname='cloud_access', **kwargs):
     """Look for and process any cloud information in a json column
@@ -104,12 +103,12 @@ def process_cloud_json(products, colname='cloud_access', **kwargs):
     
     rows_access_points = []
     for row in products:
-        # if no cloud_access column, there is nothing to do    
+        # if no colname column, there is nothing to do    
         try:
             jsontxt  = row[colname]
         except KeyError:
             # no json column, continue
-            aplist.append(None)
+            rows_access_points.append([])
             continue
         
         jsonDict = json.loads(jsontxt)
@@ -128,6 +127,7 @@ def process_cloud_json(products, colname='cloud_access', **kwargs):
             apoints.append(new_ap)
             
         rows_access_points.append(apoints)
+        
     return rows_access_points
 
 
@@ -156,6 +156,12 @@ def process_cloud_ucd(products, **kwargs):
     A list of AccessPoint instances for every row in products
     
     """
+    
+    if not isinstance(products[0], Record):
+        raise ValueError((
+            f'products has the wrong type. Expecting a list of '
+            f'dal.Record. Found {type(products[0])}'
+        ))
     
     rows_access_points = []
     for row in products:
@@ -199,9 +205,14 @@ def process_cloud_datalinks(products, query_result, provider_par='source', **kwa
         
     Return
     ------
-    A list of AccessPoint instances for every row in products
+    A list of AccessPoint instances for every row in products. 
     
     """
+    if not isinstance(products[0], Record):
+        raise ValueError((
+            f'products has the wrong type. Expecting a list of '
+            f'dal.Record. Found {type(products[0])}'
+        ))
     
     if not isinstance(query_result, DALResults):
         raise ValueError((
@@ -209,7 +220,7 @@ def process_cloud_datalinks(products, query_result, provider_par='source', **kwa
             f'dal.DALResults. Found {type(query_result)}'
         ))
     
-    rows_access_points = []
+    rows_access_points = [[] for _ in products]
     
     # get datalink service
     try:

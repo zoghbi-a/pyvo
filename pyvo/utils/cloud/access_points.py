@@ -436,7 +436,8 @@ class AWSAccessPoint(AccessPoint):
             bkt.download_file(key, local_path, Callback=progress_callback)
         return local_path
     
-    
+# A dict of the available classes.
+# Usefull automaitcally adding classes in handler.py
 ACCESS_MAP = {
     ap.provider: ap for ap in [
         PREMAccessPoint,
