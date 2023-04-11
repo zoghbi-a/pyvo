@@ -5,6 +5,7 @@ Cloud-related utils
 
 
 import json
+import itertools
 
 from astropy.table import Table, Row
 import pyvo
@@ -37,6 +38,11 @@ def generate_access_points(product, mode='all', **kwargs):
         aws_profile : str
             name of the user's profile for credentials in ~/.aws/config
             or ~/.aws/credentials. Use to authenticate the AWS user with boto3.
+            
+    Return
+    ------
+    A list of AccessPoint instances for every row in products if products
+    is a DALResults or Table, otherwise a single list
     
     """
     
@@ -59,7 +65,7 @@ def generate_access_points(product, mode='all', **kwargs):
         rows = [_ for _ in product]
     
     
-    json_ap, ucd_ap, dl_ap = [], [], []
+    json_ap, ucd_ap, dl_ap = [[] for _ in rows], [[] for _ in rows], [[] for _ in rows]
     
     if mode in ['json', 'all']:
         json_ap = process_cloud_json(rows, **kwargs)
@@ -74,10 +80,13 @@ def generate_access_points(product, mode='all', **kwargs):
             query_result = rows[0]._results
             dl_ap = process_cloud_datalinks(rows, query_result)
     
-    ap_list = json_ap + ucd_ap + dl_ap
-    ap_list = [i for j in ap_list for i in j]
-    access_points = AccessPointContainer(*ap_list)
-    print(access_points.uids())
+    # put them in one list of nrow lists of access points
+    ap_list = [list(itertools.chain(*z)) for z in zip(json_ap, ucd_ap, dl_ap)]
+    
+    if isinstance(product, (Record, Row)):
+        ap_list = ap_list[0]
+    
+    return ap_list
     
 
 def process_cloud_json(products, colname='cloud_access', **kwargs):
