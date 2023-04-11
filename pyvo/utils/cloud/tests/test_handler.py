@@ -116,4 +116,43 @@ class TestDatalinkProcess(unittest.TestCase):
         self.assertEqual(len(ap), 2)
         self.assertEqual(ap[0][-1].s3_bucket_name, 'dh-fornaxdev')
         
+
+class Test_generate_access_points(unittest.TestCase):
+    """Tests generate_access_points"""
     
+    @classmethod
+    def setUpClass(cls):
+        cls.samplexml = f'{Path(__file__).parent.as_posix()}/sample.xml'
+        cls.dal_res = SIAResults(votableparse(cls.samplexml))
+        cls.product = [_ for _ in cls.dal_res]
+        cls.table_product = [_ for _ in cls.dal_res.to_table()]
+    
+    def test_wrong_arg_type(self):
+        with self.assertRaises(ValueError):
+            ap = handler.generate_access_points([1,2])
+            
+    def test_wrong_mode(self):
+        with self.assertRaises(ValueError):
+            ap = handler.generate_access_points(self.dal_res, mode='newmode')
+            
+    def test_wrong_mode_json(self):
+        ap1 = handler.generate_access_points(self.dal_res, mode='json')
+        ap2 = handler.process_cloud_json(self.product, colname='cloud_access')
+        self.assertEqual(len(ap1), len(ap2))
+        for a1,a2 in zip(ap1[0],ap2[0]):
+            self.assertEqual(a1.uid, a2.uid)
+            
+    def test_wrong_mode_ucd(self):
+        ap1 = handler.generate_access_points(self.dal_res, mode='ucd')
+        ap2 = handler.process_cloud_ucd(self.product)
+        self.assertEqual(len(ap1), len(ap2))
+        for a1,a2 in zip(ap1[0],ap2[0]):
+            self.assertEqual(a1.uid, a2.uid)
+
+    @pytest.mark.remote_data        
+    def test_wrong_mode_datalinks(self):
+        ap1 = handler.generate_access_points(self.dal_res, mode='datalink')
+        ap2 = handler.process_cloud_datalinks(self.product, self.dal_res)
+        self.assertEqual(len(ap1), len(ap2))
+        for a1,a2 in zip(ap1[0],ap2[0]):
+            self.assertEqual(a1.uid, a2.uid)
