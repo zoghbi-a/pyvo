@@ -124,3 +124,14 @@ class TestAccessPointContainer(unittest.TestCase):
         apc = AccessPointContainer(ap1, ap2)
         self.assertEqual(len(apc.access_points), 1)
         self.assertEqual(len(list(apc.access_points.values())[0]), 1)
+        
+    
+    def test_uids(self):
+        ap = PREMAccessPoint(uid='http://some/url')
+        apc = AccessPointContainer(ap)
+        self.assertEqual(apc.uids(), ['http://some/url'])
+        
+    def test_uids_no_provider(self):
+        ap = PREMAccessPoint(uid='http://some/url')
+        apc = AccessPointContainer(ap)
+        self.assertEqual(apc.uids(provider='aws'), [])

@@ -87,8 +87,13 @@ class AccessPointContainer(dict):
         
         """
         
+        providers = list(self.access_points.keys())
+        
+        if provider is not None and provider not in providers:
+            return []
+        
         if provider is None:
-            provider = [k for k in self.access_points.keys()]
+            provider = [k for k in providers]
         
         if isinstance(provider, str):
             provider = [provider]
@@ -109,6 +114,22 @@ class AccessPointContainer(dict):
     def __getitem__(self, item):
         """Enable access to the access_points list directly"""
         return self.access_points[item]
+    
+    
+    @property
+    def providers(self):
+        """Return a list of providers in the container"""
+        
+        return list(self.access_points.keys())
+    
+    
+    def summary(self):
+        """Print a summary of the access points"""
+        text = ''
+        for name,apoints in self.access_points.items():
+            text += '\n'
+            text += '\n'.join([str(ap) for ap in apoints])
+        print(text)
 
 
 class AccessPoint:
