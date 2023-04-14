@@ -9,10 +9,9 @@ import itertools
 
 from astropy.table import Table, Row
 import pyvo
-from pyvo.dal import Record, DALResults
 
 
-from .access_points import ACCESS_MAP, AccessPointContainer
+from .access_points import ACCESS_MAP
 
 
 def generate_access_points(product, mode='all', **kwargs):
@@ -45,7 +44,8 @@ def generate_access_points(product, mode='all', **kwargs):
     is a DALResults or Table, otherwise a single list
     
     """
-    
+    Record = pyvo.dal.Record
+    DALResults = pyvo.dal.DALResults
     if not isinstance(product, (Record, DALResults, Table, Row)):
         raise ValueError((
             f'product has the wrong type. Expecting dal.Record, '
@@ -166,7 +166,7 @@ def process_cloud_ucd(products, **kwargs):
     
     """
     
-    if not isinstance(products[0], Record):
+    if not isinstance(products[0], pyvo.dal.Record):
         raise ValueError((
             f'products has the wrong type. Expecting a list of '
             f'dal.Record. Found {type(products[0])}'
@@ -217,13 +217,13 @@ def process_cloud_datalinks(products, query_result, provider_par='source', **kwa
     A list of AccessPoint instances for every row in products. 
     
     """
-    if not isinstance(products[0], Record):
+    if not isinstance(products[0], pyvo.dal.Record):
         raise ValueError((
             f'products has the wrong type. Expecting a list of '
             f'dal.Record. Found {type(products[0])}'
         ))
     
-    if not isinstance(query_result, DALResults):
+    if not isinstance(query_result, pyvo.dal.DALResults):
         raise ValueError((
             f'query_result has the wrong type. Expecting '
             f'dal.DALResults. Found {type(query_result)}'
