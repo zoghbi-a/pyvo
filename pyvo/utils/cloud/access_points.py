@@ -8,6 +8,7 @@ import botocore
 from pathlib import Path
 import os
 from astropy.utils.console import ProgressBarOrSpinner
+import threading
 
 
 __all__ = ['ACCESS_MAP', 'AccessPointContainer', 'PREMAccessPoint', 'AWSAccessPoint']
