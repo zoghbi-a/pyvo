@@ -9,11 +9,16 @@ import itertools
 
 from astropy.table import Table, Row
 import pyvo
+from pyvo.utils import prototype
+
+from .access_points import ACCESS_MAP, AccessPointContainer
 
 
-from .access_points import ACCESS_MAP
+prototype.features['cloud'] = prototype.Feature('cloud',
+                              'https://wiki.ivoa.net/twiki/bin/view/IVOA/Cloud-access',
+                              False)
 
-
+@prototype.prototype_feature('cloud')
 def generate_access_points(product, mode='all', **kwargs):
     """Process cloud-related information in a data product
     
@@ -89,6 +94,7 @@ def generate_access_points(product, mode='all', **kwargs):
     return ap_list
     
 
+@prototype.prototype_feature('cloud')
 def process_cloud_json(products, colname='cloud_access', **kwargs):
     """Look for and process any cloud information in a json column
     
@@ -140,6 +146,7 @@ def process_cloud_json(products, colname='cloud_access', **kwargs):
     return rows_access_points
 
 
+@prototype.prototype_feature('cloud')
 def process_cloud_ucd(products, **kwargs):
     """Look for and process any cloud information in columns
     with ucd of the form: 'meta.ref.{provider}', where provider
@@ -188,6 +195,7 @@ def process_cloud_ucd(products, **kwargs):
     return rows_access_points
 
 
+@prototype.prototype_feature('cloud')
 def process_cloud_datalinks(products, query_result, provider_par='source', **kwargs):
     """Look for and process any cloud information in datalinks
     
@@ -281,3 +289,160 @@ def process_cloud_datalinks(products, query_result, provider_par='source', **kwa
                         rows_access_points[irow].append(new_ap)
     
     return rows_access_points
+
+
+@prototype.prototype_feature('cloud')
+class CloudHandler:
+    """
+    Handles and processes cloud access functionality
+    """   
+    
+    def __init__(self, product, mode='all', **kwargs):
+        """Process cloud-related information in a data product
+        
+        Creates an AccessPointContainer for the Record/Row.        
+    
+    
+        Parameters
+        ----------
+        product: pyvo.dal.Record, pyvo.dal.DALResults, astropy Table or Row
+            The data product.
+        mode: str
+            The mode to use. Options include: json, datalink, ucd, or all.
+
+        Keywords
+        --------
+        meta data needed to download the data, such as authentication profile
+        which will be used to create access points. 
+
+        prem:
+            No keywords needed
+        aws:
+            aws_profile : str
+                name of the user's profile for credentials in ~/.aws/config
+                or ~/.aws/credentials. Use to authenticate the AWS user with boto3.
+        
+        """
+        
+        # generate access points; this will fail if product is of the wrong type
+        generated_ap = generate_access_points(product=product, mode=mode, **kwargs)
+        
+        product_is_list = isinstance(generated_ap[0], list)
+        if not product_is_list:
+            generated_ap = [generated_ap]
+        
+        # add a default on-prem access point
+        nrec = len(generated_ap)
+        access_points = []
+        for irec in range(nrec):
+            access = AccessPointContainer()
+            access.add_access_point(generated_ap[irec])
+            access_points.append(access)
+        
+        # if we initially got a single row, retrun a single container
+        if not product_is_list:
+            access_points = access_points[0]
+        
+        self.product_is_list = product_is_list
+        self.access_points = access_points
+    
+    
+    def get_cloud_uris(self, provider=None):
+        """Retrun the cloud uri for the dataset, which can be used to retrieve 
+        the dataset in this record. None is returne if no cloud information
+        is available
+        
+        Parameters
+        ----------
+        provider: str or None
+            Which provider to use: prem, aws, gc, azure.
+            If None, get uris from all providers
+            
+            
+        """
+        
+        if self.product_is_list:
+            uris = [ap.uids(provider) for ap in self.access_points]
+        else:
+            uris = self.access_points.uids(provider)
+                
+        return access.uids(provider)
+    
+    
+    def download(self, provider='aws'):
+        """
+        Download the data from the given provider
+        
+        Parameters:
+        ----------
+        provider: str
+            A short name of the data provider: prem, aws, azure, gc etc
+        """
+        
+        
+        access_point_list = self.access_points
+        if not self.product_is_list:
+            access_point_list = [access_point_list]
+        
+        # loop through the rows:
+        paths, messages = [], []
+        for access in access_point_list:  
+            
+            path, msgs = None, []
+            
+            if provider in access.providers:
+
+                access_points = access[provider]
+                # return the first access point that is accessible.
+                # if none, print the returned message
+                # TODO: we can make this more sophisticated by selecting
+                # by region etc.
+                for ap in access_points:
+                    accessible, msg = ap.accessible
+                    if accessible:
+                        path = ap.download()
+                        break
+                    else:
+                        msgs.append(msg)
+            else:
+                msgs.append(f'No data from {provider}')
+
+            messages.append(msgs)
+            paths.append(path)
+        self.messages = messages
+        
+        return paths
+    
+
+@prototype.prototype_feature('cloud')
+def enable_cloud(product, mode='all', **kwargs):
+    """Process cloud-related information in a data product.
+    This is a wrapper around CloudHandler
+
+    Parameters
+    ----------
+    product: pyvo.dal.Record, pyvo.dal.DALResults, astropy Table or Row
+        The data product.
+    mode: str
+        The mode to use. Options include: json, datalink, ucd, or all.
+
+    Keywords
+    --------
+    meta data needed to download the data, such as authentication profile
+    which will be used to create access points. 
+
+    prem:
+        No keywords needed
+    aws:
+        aws_profile : str
+            name of the user's profile for credentials in ~/.aws/config
+            or ~/.aws/credentials. Use to authenticate the AWS user with boto3.
+            
+    Return
+    ------
+    CloudHandler instance, which has a download method.
+    
+    """
+    
+    handler = CloudHandler(product, mode, **kwargs)
+    return handler
