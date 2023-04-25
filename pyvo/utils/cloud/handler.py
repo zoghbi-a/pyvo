@@ -241,9 +241,7 @@ def process_cloud_datalinks(products, query_result, provider_par='source', **kwa
     
     # get datalink service
     try:
-        _datalink = query_result.get_adhocservice_by_ivoid(
-            'ivo://ivoa.net/std/datalink'
-        )
+        _datalink = query_result.get_adhocservice_by_id('cloudlinks')
     except (pyvo.DALServiceError, AttributeError):
         # No datalinks; return
         return rows_access_points
