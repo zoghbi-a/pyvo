@@ -434,7 +434,7 @@ class AWSAccessPoint(AccessPoint):
                 statinfo = os.stat(local_path)
                 if statinfo.st_size == length:
                     # found cached file with expected size. Stop
-                    return
+                    return local_path
 
         with ProgressBarOrSpinner(length, (f'Downloading {self.s3_uri} to {local_path} ...')) as pb:
 
