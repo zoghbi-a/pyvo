@@ -6,11 +6,8 @@ from .handler import generate_access_points
 from .access_points import AccessPointContainer, PREMAccessPoint
 
 
-prototype.features['cloud-mixin'] = prototype.Feature('cloud-mixin',
-                              'https://wiki.ivoa.net/twiki/bin/view/IVOA/Cloud-access',
-                              False)
 
-@prototype.prototype_feature('cloud-mixin')
+@prototype.prototype_feature('cloud')
 class CloudRecordMixin:
     """
     Mixin to add cloud access functionality to pyvo.dal.Record
@@ -146,7 +143,7 @@ class CloudRecordMixin:
         return path
     
     
-@prototype.prototype_feature('cloud-mixin')
+@prototype.prototype_feature('cloud')
 class CloudResultsMixin:
     """
     Mixin to add cloud access functionality to pyvo.dal.DALResults
