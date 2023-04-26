@@ -2,7 +2,7 @@
 from pyvo.utils import prototype
 
 
-from .handler import generate_access_points
+from .handler import generate_access_points, enable_cloud
 from .access_points import AccessPointContainer, PREMAccessPoint
 
 
@@ -14,7 +14,7 @@ class CloudRecordMixin:
     """
     
     
-    def enable_cloud(self, mode='all', refresh=False, **kwargs):
+    def enable_cloud(self, mode='all', urlcolumn='auto', refresh=False, **kwargs):
         """Process cloud-related information in a data product
         
         Adds a list of AccessPointContainer's (called access_points) 
@@ -28,6 +28,11 @@ class CloudRecordMixin:
         ----------
         mode: str
             The mode to use. Options include: json, datalink, ucd, or all.
+        urlcolumn: str
+            The name of the column that contains the url link to on-prem data.
+            If 'auto', try to find the url by:
+                - use getdataurl if product is either pyvo.dal.Record
+                - Use any column that contain http(s) links if product is Row.
         refresh: bool
             If True, re-work out the access points. May be needed
             when changing credentials for example.
@@ -57,22 +62,15 @@ class CloudRecordMixin:
 
         else:
             
-            # add a default on-prem access point
-            access = AccessPointContainer()
-            url = self.getdataurl()
-            if url is not None:
-                access.add_access_point(PREMAccessPoint(uid=url))
-                
-            # generate access points
-            generated_ap = generate_access_points(product=self, mode=mode, **kwargs)
-            access.add_access_point(generated_ap)
-
+            # create a cloudHandler
+            cloudHandler = enable_cloud(self, mode, urlcolumn, **kwargs)
             
             # Initialize self._results.access_points if needed
             if not hasattr(self._results, 'access_points'):
                 self._results.access_points = [None for _ in self._results]
             
-            self._results.access_points[self._index] = access
+            self._results.access_points[self._index] = cloudHandler.access_points
+            self._cloudHanlder = cloudHandler
     
     @property
     def access(self):
@@ -103,12 +101,10 @@ class CloudRecordMixin:
             
         """
         
-        access = self.access
-                
-        return access.uids(provider)
+        return self._cloudHanlder.get_cloud_uris(provider)
     
     
-    def download(self, provider='aws'):
+    def download(self, provider='aws', cache=True):
         """
         Download the data from the given provider
         
@@ -116,31 +112,12 @@ class CloudRecordMixin:
         ----------
         provider: str
             A short name of the data provider: prem, aws, azure, gc etc
+        cache : bool
+            If True (default), use file in cache if present.
         """
         
+        return self._cloudHanlder.download(provider, cache)
         
-        access = self.access
-        if provider not in access.providers:
-            raise ValueError(f'No access point available for provider {provider}.')
-            
-        access_points = access[provider]
-        path = None
-        msgs = []
-        # return the first access point that is accessible.
-        # if none, print the returned message
-        # TODO: we can make this more sophisticated by selecting
-        # by region etc.
-        for ap in access_points:
-            accessible, msg = ap.accessible
-            if accessible:
-                path = ap.download()
-                break
-            else:
-                msgs.append(msg)
-        if path is None:
-            for ap,msg in zip(access_points, msgs):
-                print(f'\n** {ap}: ***\n{msg}\n')
-        return path
     
     
 @prototype.prototype_feature('cloud')
@@ -150,7 +127,7 @@ class CloudResultsMixin:
     """
     
     
-    def enable_cloud(self, mode='all', refresh=False, **kwargs):
+    def enable_cloud(self, mode='all', urlcolumn='auto', refresh=False, **kwargs):
         """Process cloud-related information in a data product
         
         Adds a list of AccessPointContainer's (called access_points) 
@@ -162,6 +139,11 @@ class CloudResultsMixin:
         ----------
         mode: str
             The mode to use. Options include: json, datalink, ucd, or all.
+        urlcolumn: str
+            The name of the column that contains the url link to on-prem data.
+            If 'auto', try to find the url by:
+                - use getdataurl if product is either pyvo.dal.Record
+                - Use any column that contain http(s) links if product is Row.
         refresh: bool
             If True, re-work out the access points. May be needed
             when changing credentials for example.
@@ -188,26 +170,15 @@ class CloudResultsMixin:
             # nothing to do; we have already done this
             return
 
-        # add a default on-prem access point
-        nrec = len(self)
-        access_points = []
-        for irec in range(nrec):
-            access = AccessPointContainer()
-            url = self[irec].getdataurl()
-            if url is not None:
-                access.add_access_point(PREMAccessPoint(uid=url))
-            access_points.append(access)
-            
-        # generate access points
-        generated_ap = generate_access_points(product=self, mode=mode, **kwargs)
-        for irec in range(nrec):
-            access_points[irec].add_access_point(generated_ap[irec])
-
+        # create a cloudHandler
+        cloudHandler = enable_cloud(self, mode, urlcolumn, **kwargs)
+        
         # add 'access_points' to the DALResults
-        self.access_points = access_points
+        self.access_points = cloudHandler.access_points
+        self._cloudHanlder = cloudHandler
 
     
-    def download(self, provider='aws'):
+    def download(self, provider='aws', cache=True):
         """
         Download data for *all* rows from the given provider
         
@@ -215,6 +186,8 @@ class CloudResultsMixin:
         ----------
         provider: str
             prem, aws, azure, gc etc
+        cache : bool
+            If True (default), use file in cache if present.
+        
         """
-        paths = [rec.download(provider) for rec in self]
-        return paths
+        return self._cloudHanlder.download(provider, cache)
