@@ -10,6 +10,8 @@ from pyvo.dal import DALResults, SIAResults
 
 from pyvo.utils.cloud import handler
 
+from pyvo.utils import activate_features
+activate_features('cloud')
 
     
 class TestJSONProcess(unittest.TestCase):

@@ -408,7 +408,7 @@ class AWSAccessPoint(AccessPoint):
         Parameters
         ----------
         cache : bool
-            If True (default) and the file is found on disc it will not be downloaded again.
+            If True (default), use file in cache if present.
             
         """
         

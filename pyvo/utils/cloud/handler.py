@@ -295,7 +295,7 @@ class CloudHandler:
     Handles and processes cloud access functionality
     """   
     
-    def __init__(self, product, mode='all', **kwargs):
+    def __init__(self, product, mode='all', urlcolumn='auto', **kwargs):
         """Process cloud-related information in a data product
         
         Creates an AccessPointContainer for the Record/Row.        
@@ -307,6 +307,11 @@ class CloudHandler:
             The data product.
         mode: str
             The mode to use. Options include: json, datalink, ucd, or all.
+        urlcolumn: str
+            The name of the column that contains the url link to on-prem data.
+            If 'auto', try to find the url by:
+                - use getdataurl if product is either pyvo.dal.Record or DALResults
+                - Use any column that contain http(s) links if product is Table or Row.
 
         Keywords
         --------
@@ -328,12 +333,21 @@ class CloudHandler:
         product_is_list = isinstance(generated_ap[0], list)
         if not product_is_list:
             generated_ap = [generated_ap]
+            product = [product]
+        
         
         # add a default on-prem access point
         nrec = len(generated_ap)
         access_points = []
         for irec in range(nrec):
             access = AccessPointContainer()
+
+            # add on-prem url if found
+            url = self._getdataurl(product[irec], urlcolumn)
+            if url is not None:
+                access.add_access_point(ACCESS_MAP['prem'](uid=url))
+            
+            # add other access points
             access.add_access_point(generated_ap[irec])
             access_points.append(access)
         
@@ -344,6 +358,53 @@ class CloudHandler:
         self.product_is_list = product_is_list
         self.access_points = access_points
     
+    
+    def _getdataurl(self, product, urlcolumn='auto'):
+        """Work out the prem data url
+        
+        Parameters
+        ----------
+        product: Record or Row
+        urlcolumn: str
+            The name of the column that contains the url link to on-prem data.
+            If 'auto', try to find the url by:
+                - use getdataurl if product is either pyvo.dal.Record
+                - Use any column that contain http(s) links if product is Row.
+                
+        Return
+        ------
+        url (as str) if found or None
+        
+        """
+        # column names
+        if hasattr(product, 'fieldnames'):
+            # DALResults
+            colnames = product.fieldnames
+        elif hasattr(product, '_results'):
+            # dal.Record
+            colnames = product._results.fieldnames
+        else:
+            colnames = product.colnames
+        
+        url = None
+        
+        if urlcolumn == 'auto':
+            if isinstance(product, pyvo.dal.Record):
+                url = product.getdataurl()
+            else:
+                # try to find it
+                for col in colnames:
+                    if isinstance(product[col], str) and 'http' in product[col]:
+                        url = product[col]
+                        break
+        else:
+            if urlcolumn not in colnames:
+                raise ValueError(f'colname {colname} not available in data product')
+            url = product[urlcolumn]
+        
+        return url
+        
+        
     
     def get_cloud_uris(self, provider=None):
         """Retrun the cloud uri for the dataset, which can be used to retrieve 
@@ -364,10 +425,10 @@ class CloudHandler:
         else:
             uris = self.access_points.uids(provider)
                 
-        return access.uids(provider)
+        return uris
     
     
-    def download(self, provider='aws'):
+    def download(self, provider='aws', cache=True):
         """
         Download the data from the given provider
         
@@ -375,6 +436,9 @@ class CloudHandler:
         ----------
         provider: str
             A short name of the data provider: prem, aws, azure, gc etc
+        cache : bool
+            If True (default), use file in cache if present.
+            
         """
         
         
@@ -398,22 +462,31 @@ class CloudHandler:
                 for ap in access_points:
                     accessible, msg = ap.accessible
                     if accessible:
-                        path = ap.download()
+                        path = ap.download(cache)
                         break
                     else:
                         msgs.append(msg)
             else:
                 msgs.append(f'No data from {provider}')
 
+            if path is None:
+                for ap,msg in zip(access, msgs):
+                    print(f'\n** {ap}: ***\n{msg}\n')
+                    
             messages.append(msgs)
             paths.append(path)
-        self.messages = messages
         
+        if not self.product_is_list:
+            paths = paths[0]
+            messages = messages[0]
+        
+        self.messages = messages
+                
         return paths
     
 
 @prototype.prototype_feature('cloud')
-def enable_cloud(product, mode='all', **kwargs):
+def enable_cloud(product, mode='all', urlcolumn='auto', **kwargs):
     """Process cloud-related information in a data product.
     This is a wrapper around CloudHandler
 
@@ -423,6 +496,11 @@ def enable_cloud(product, mode='all', **kwargs):
         The data product.
     mode: str
         The mode to use. Options include: json, datalink, ucd, or all.
+    urlcolumn: str
+            The name of the column that contains the url link to on-prem data.
+            If 'auto', try to find the url by:
+                - use getdataurl if product is either pyvo.dal.Record
+                - Use any column that contain http(s) links if product is Row.
 
     Keywords
     --------
@@ -442,5 +520,5 @@ def enable_cloud(product, mode='all', **kwargs):
     
     """
     
-    handler = CloudHandler(product, mode, **kwargs)
+    handler = CloudHandler(product, mode, urlcolumn, **kwargs)
     return handler
