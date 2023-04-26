@@ -34,14 +34,14 @@ class TestJSONProcess(unittest.TestCase):
         ap = handler.process_cloud_json(self.product, colname='cloud_access')
         self.assertEqual(len(ap), 2)
         self.assertEqual(len(ap[0]), 1)
-        self.assertEqual(ap[0][0].s3_bucket_name, 'dh-fornaxdev')
+        self.assertEqual(ap[0][0].s3_bucket_name, 'fornaxdev-east1-curated')
         self.assertEqual(ap[0][0].s3_key, 'FTP/chandra/data/byobsid/2/3052/primary/acisf03052N004_cntr_img2.jpg')
         
     def test_basic_use_table(self):
         ap = handler.process_cloud_json(self.table_product, colname='cloud_access')
         self.assertEqual(len(ap), 2)
         self.assertEqual(len(ap[0]), 1)
-        self.assertEqual(ap[0][0].s3_bucket_name, 'dh-fornaxdev')
+        self.assertEqual(ap[0][0].s3_bucket_name, 'fornaxdev-east1-curated')
         self.assertEqual(ap[0][0].s3_key, 'FTP/chandra/data/byobsid/2/3052/primary/acisf03052N004_cntr_img2.jpg')
         
     def test_meta_keyword(self):
@@ -65,7 +65,7 @@ class TestUCDProcess(unittest.TestCase):
         ap = handler.process_cloud_ucd(self.product)
         self.assertEqual(len(ap), 2)
         self.assertEqual(len(ap[0]), 1)
-        self.assertEqual(ap[0][0].s3_bucket_name, 'nasa-heasarc')
+        self.assertEqual(ap[0][0].s3_bucket_name, 'heasarc-public')
         self.assertEqual(ap[0][0].s3_key, 'chandra/data/byobsid/2/3052/primary/acisf03052N004_cntr_img2.jpg')
         
     def test_basic_use_table(self):
@@ -116,7 +116,7 @@ class TestDatalinkProcess(unittest.TestCase):
     def test_basic_use(self):
         ap = handler.process_cloud_datalinks(products=self.product, query_result=self.dal_res)
         self.assertEqual(len(ap), 2)
-        self.assertEqual(ap[0][-1].s3_bucket_name, 'dh-fornaxdev')
+        self.assertEqual(ap[0][-1].s3_bucket_name, 'heasarc-public')
         
 
 class Test_generate_access_points(unittest.TestCase):
@@ -137,14 +137,14 @@ class Test_generate_access_points(unittest.TestCase):
         with self.assertRaises(ValueError):
             ap = handler.generate_access_points(self.dal_res, mode='newmode')
             
-    def test_wrong_mode_json(self):
+    def test_mode_json(self):
         ap1 = handler.generate_access_points(self.dal_res, mode='json')
         ap2 = handler.process_cloud_json(self.product, colname='cloud_access')
         self.assertEqual(len(ap1), len(ap2))
         for a1,a2 in zip(ap1[0],ap2[0]):
             self.assertEqual(a1.uid, a2.uid)
             
-    def test_wrong_mode_ucd(self):
+    def test_mode_ucd(self):
         ap1 = handler.generate_access_points(self.dal_res, mode='ucd')
         ap2 = handler.process_cloud_ucd(self.product)
         self.assertEqual(len(ap1), len(ap2))
@@ -152,9 +152,16 @@ class Test_generate_access_points(unittest.TestCase):
             self.assertEqual(a1.uid, a2.uid)
 
     @pytest.mark.remote_data        
-    def test_wrong_mode_datalinks(self):
+    def test_mode_datalinks(self):
         ap1 = handler.generate_access_points(self.dal_res, mode='datalink')
         ap2 = handler.process_cloud_datalinks(self.product, self.dal_res)
+        self.assertEqual(len(ap1), len(ap2))
+        for a1,a2 in zip(ap1[0],ap2[0]):
+            self.assertEqual(a1.uid, a2.uid)
+            
+    def test_return_list(self):
+        ap1 = handler.generate_access_points(self.dal_res, mode='ucd')
+        ap2 = handler.process_cloud_ucd(self.product)
         self.assertEqual(len(ap1), len(ap2))
         for a1,a2 in zip(ap1[0],ap2[0]):
             self.assertEqual(a1.uid, a2.uid)
