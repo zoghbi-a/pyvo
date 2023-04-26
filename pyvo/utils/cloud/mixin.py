@@ -33,6 +33,7 @@ class CloudRecordMixin:
             If 'auto', try to find the url by:
                 - use getdataurl if product is either pyvo.dal.Record
                 - Use any column that contain http(s) links if product is Row.
+            If None, do not use url for on-prem access
         refresh: bool
             If True, re-work out the access points. May be needed
             when changing credentials for example.
@@ -144,6 +145,7 @@ class CloudResultsMixin:
             If 'auto', try to find the url by:
                 - use getdataurl if product is either pyvo.dal.Record
                 - Use any column that contain http(s) links if product is Row.
+            If None, do not use url for on-prem access
         refresh: bool
             If True, re-work out the access points. May be needed
             when changing credentials for example.
