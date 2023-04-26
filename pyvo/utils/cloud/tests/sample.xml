@@ -5,7 +5,7 @@
   <INFO name="Info: Name resolution" value="Position 182.63,39.40 corresponds to J2000 decimal coordinates:182.62999999999997 39.4"/>
   <INFO name="QUERY_STATUS" value="OK"/>
   <TABLE>
-   <DESCRIPTION>Query result for:&#xA;select __row, obsid, status, name, ra, dec, time, detector, grating, exposure, type, pi, public_date,  __row  as "__dp",  '/FTP/chandra/data/byobsid/'   || substring(lpad(  ''  ||  obsid  ,10,  '0'  ),10,1) ||   '//'   ||   obsid   ||   '/'  as "__p_chanmaster_chandra_obs_root",  ra  as "__s_chanmaster_chandra_obs_img_cntr_jpg_RA",  name  as "__s_chanmaster_chandra_obs_img_cntr_jpg_name",  obsid  as "__s_chanmaster_chandra_obs_img_cntr_jpg_obsid",  exposure  as "__s_chanmaster_chandra_obs_img_cntr_jpg_exposure",  time  +  exposure  as "__s_chanmaster_chandra_obs_img_cntr_jpg_stop_time",  time  as "__s_chanmaster_chandra_obs_img_cntr_jpg_time",  dec  as "__s_chanmaster_chandra_obs_img_cntr_jpg_Dec",  __row  as "__s_chanmaster_chandra_obs_img_cntr_jpg_row",  detector  as "__s_chanmaster_chandra_obs_img_cntr_jpg_DETECTOR",  __row  as "__s_chanmaster_chandra_obs_img_cntr_fits_row",  time  as "__s_chanmaster_chandra_obs_img_cntr_fits_time",  dec  as "__s_chanmaster_chandra_obs_img_cntr_fits_Dec",  exposure  as "__s_chanmaster_chandra_obs_img_cntr_fits_exposure",  detector  as "__s_chanmaster_chandra_obs_img_cntr_fits_DETECTOR",  obsid  as "__s_chanmaster_chandra_obs_img_cntr_fits_obsid",  name  as "__s_chanmaster_chandra_obs_img_cntr_fits_name",  ra  as "__s_chanmaster_chandra_obs_img_cntr_fits_RA",  time  +  exposure  as "__s_chanmaster_chandra_obs_img_cntr_fits_stop_time" from chanmaster where  (  ( (( power(sin((radians(  dec  ) - 0.6876597252857658)/2),2) +cos(radians(  dec  ))*cos(0.6876597252857658)*power(sin((radians(  ra  ) - 3.1874948129172433)/2),2)&lt;9.328879471492885E-6) and (  dec     between   39.05   and   39.75)) )  ) limit 3</DESCRIPTION>
+   <DESCRIPTION>Query result for:&#xA;select __row, obsid, status, name, ra, dec, time, detector, grating, exposure, type, pi, public_date,  __row  as "__dp",  '/FTP/chandra/data/byobsid/'   || substring(lpad(  ''  ||  obsid  ,10,  '0'  ),10,1) ||   '//'   ||   obsid   ||   '/'  as "__p_chanmaster_chandra_obs_root",  obsid  as "__s_chanmaster_chandra_obs_img_cntr_jpg_obsid",  exposure  as "__s_chanmaster_chandra_obs_img_cntr_jpg_exposure",  time  +  exposure  as "__s_chanmaster_chandra_obs_img_cntr_jpg_stop_time",  name  as "__s_chanmaster_chandra_obs_img_cntr_jpg_name",  time  as "__s_chanmaster_chandra_obs_img_cntr_jpg_time",  dec  as "__s_chanmaster_chandra_obs_img_cntr_jpg_Dec",  ra  as "__s_chanmaster_chandra_obs_img_cntr_jpg_RA",  __row  as "__s_chanmaster_chandra_obs_img_cntr_jpg_row",  detector  as "__s_chanmaster_chandra_obs_img_cntr_jpg_DETECTOR",  time  as "__s_chanmaster_chandra_obs_img_cntr_fits_time",  dec  as "__s_chanmaster_chandra_obs_img_cntr_fits_Dec",  detector  as "__s_chanmaster_chandra_obs_img_cntr_fits_DETECTOR",  ra  as "__s_chanmaster_chandra_obs_img_cntr_fits_RA",  __row  as "__s_chanmaster_chandra_obs_img_cntr_fits_row",  name  as "__s_chanmaster_chandra_obs_img_cntr_fits_name",  obsid  as "__s_chanmaster_chandra_obs_img_cntr_fits_obsid",  exposure  as "__s_chanmaster_chandra_obs_img_cntr_fits_exposure",  time  +  exposure  as "__s_chanmaster_chandra_obs_img_cntr_fits_stop_time" from chanmaster where  (  ( (( power(sin((radians(  dec  ) - 0.6876597252857658)/2),2) +cos(radians(  dec  ))*cos(0.6876597252857658)*power(sin((radians(  ra  ) - 3.1874948129172433)/2),2)&lt;9.328879471492885E-6) and (  dec     between   39.05   and   39.75)) )  ) limit 3</DESCRIPTION>
    <FIELD datatype="char" arraysize="*" ucd="ID_MAIN" name="obsid" width="5">
     <DESCRIPTION>Observation Identifier</DESCRIPTION>
    </FIELD>
@@ -95,7 +95,7 @@
  <TD>GO</TD>
  <TD>kraemer</TD>
  <TD>52779</TD>
-<TD>18423:chandra.obs.img</TD>
+<TD>18443:chandra.obs.img</TD>
 <TD>52403.7678819444</TD>
 <TD></TD>
 <TD>209003.7678819444</TD>
@@ -130,8 +130,8 @@
 <TD>182.63625</TD>
 <TD>39.40544</TD>
 <TD>CHANDRA ACIS-S</TD>
-<TD>{"aws": {   "bucket_name": "dh-fornaxdev",   "region": "us-east-1",   "key": "FTP/chandra/data/byobsid/2/3052/primary/acisf03052N004_cntr_img2.jpg" }}</TD>
-<TD>s3://nasa-heasarc/chandra/data/byobsid/2/3052/primary/acisf03052N004_cntr_img2.jpg</TD>
+<TD>{"aws": {   "bucket_name": "fornaxdev-east1-curated",   "region": "us-east-1",   "key": "FTP/chandra/data/byobsid/2/3052/primary/acisf03052N004_cntr_img2.jpg" }}</TD>
+<TD>s3://heasarc-public/chandra/data/byobsid/2/3052/primary/acisf03052N004_cntr_img2.jpg</TD>
 </TR>
 <TR>
  <TD>3480</TD>
@@ -146,7 +146,7 @@
  <TD>GO</TD>
  <TD>kraemer</TD>
  <TD>52779</TD>
-<TD>18424:chandra.obs.img</TD>
+<TD>18444:chandra.obs.img</TD>
 <TD>52401.975625</TD>
 <TD></TD>
 <TD>145291.975625</TD>
@@ -181,8 +181,8 @@
 <TD>182.63625</TD>
 <TD>39.40544</TD>
 <TD>CHANDRA ACIS-S</TD>
-<TD>{"aws": {   "bucket_name": "dh-fornaxdev",   "region": "us-east-1",   "key": "FTP/chandra/data/byobsid/0/3480/primary/acisf03480N004_cntr_img2.jpg" }}</TD>
-<TD>s3://nasa-heasarc/chandra/data/byobsid/0/3480/primary/acisf03480N004_cntr_img2.jpg</TD>
+<TD>{"aws": {   "bucket_name": "fornaxdev-east1-curated",   "region": "us-east-1",   "key": "FTP/chandra/data/byobsid/0/3480/primary/acisf03480N004_cntr_img2.jpg" }}</TD>
+<TD>s3://heasarc-public/chandra/data/byobsid/0/3480/primary/acisf03480N004_cntr_img2.jpg</TD>
 </TR>
     </TABLEDATA>
    </DATA>
@@ -194,7 +194,16 @@
   <PARAM datatype="char" arraysize="*" name="accessURL" value="https://heasarc.gsfc.nasa.gov/xamin_aws/vo/datalink/chanmaster"/>
   <GROUP name="inputParams">
    <PARAM ref="DataLinkID" datatype="char" arraysize="*" name="id" value=""/>
-   <PARAM datatype="char" arraysize="*" name="source" value="prem">
+  </GROUP>
+  <PARAM datatype="char" arraysize="*" name="Products_chanmaster" value="[link.rosmaster, link.xmmmaster, point.bib, link.xteindex, link.ascamaster1, chandra.obs, chandra.cxc.abs]"/>
+  <PARAM datatype="char" arraysize="*" name="DataLinkSettings" value="products=chandra.obs.img.cntr.jpg,chandra.obs.img.cntr.fits"/>
+ </RESOURCE>
+ <RESOURCE utype="adhoc:service" ID="cloudlinks" type="meta">
+  <PARAM datatype="char" arraysize="*" name="standardID" value="ivo://ivoa.net/std/DataLink#links-1.0"/>
+  <PARAM datatype="char" arraysize="*" name="accessURL" value="https://heasarc.gsfc.nasa.gov/xamin_aws/vo/datalink/chanmaster"/>
+  <GROUP name="inputParams">
+   <PARAM ref="DataLinkID" datatype="char" arraysize="*" name="id" value=""/>
+   <PARAM datatype="char" arraysize="*" name="provider" value="prem">
     <VALUES>
      <OPTION name="On prem servers" value="prem"/>
      <OPTION name="AWS region 1" value="aws:us-east1"/>
@@ -203,7 +212,5 @@
     </VALUES>
    </PARAM>
   </GROUP>
-  <PARAM datatype="char" arraysize="*" name="Products_chanmaster" value="[link.rosmaster, link.xmmmaster, point.bib, link.xteindex, link.ascamaster1, chandra.obs, chandra.cxc.abs]"/>
-  <PARAM datatype="char" arraysize="*" name="DataLinkSettings" value="products=chandra.obs.img.cntr.jpg,chandra.obs.img.cntr.fits"/>
  </RESOURCE>
 </VOTABLE>

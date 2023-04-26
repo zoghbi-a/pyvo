@@ -196,7 +196,7 @@ def process_cloud_ucd(products, **kwargs):
 
 
 @prototype.prototype_feature('cloud')
-def process_cloud_datalinks(products, query_result, provider_par='source', **kwargs):
+def process_cloud_datalinks(products, query_result, provider_par='provider', **kwargs):
     """Look for and process any cloud information in datalinks
     
     Note that products needs to be a pyvo.dal.Record. astropy
