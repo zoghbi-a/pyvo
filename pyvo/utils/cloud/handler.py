@@ -312,6 +312,7 @@ class CloudHandler:
             If 'auto', try to find the url by:
                 - use getdataurl if product is either pyvo.dal.Record or DALResults
                 - Use any column that contain http(s) links if product is Table or Row.
+            If None, do not use url for on-prem access
 
         Keywords
         --------
@@ -365,17 +366,22 @@ class CloudHandler:
         Parameters
         ----------
         product: Record or Row
-        urlcolumn: str
+        urlcolumn: str or None
             The name of the column that contains the url link to on-prem data.
             If 'auto', try to find the url by:
                 - use getdataurl if product is either pyvo.dal.Record
                 - Use any column that contain http(s) links if product is Row.
+            If None, do not use url for on-prem access
                 
         Return
         ------
         url (as str) if found or None
         
         """
+        
+        if not isinstance(product, (pyvo.dal.Record, Row)):
+            raise ValueError('product has to be either dal.Record or Row')
+        
         # column names
         if hasattr(product, 'fieldnames'):
             # DALResults
@@ -386,7 +392,6 @@ class CloudHandler:
         else:
             colnames = product.colnames
         
-        url = None
         
         if urlcolumn == 'auto':
             if isinstance(product, pyvo.dal.Record):
@@ -397,9 +402,11 @@ class CloudHandler:
                     if isinstance(product[col], str) and 'http' in product[col]:
                         url = product[col]
                         break
+        elif urlcolumn is None:
+            url = None
         else:
             if urlcolumn not in colnames:
-                raise ValueError(f'colname {colname} not available in data product')
+                raise ValueError(f'colname {urlcolumn} not available in data product')
             url = product[urlcolumn]
         
         return url
