@@ -105,7 +105,7 @@ class CloudRecordMixin:
         return self._cloudHanlder.get_cloud_uris(provider)
     
     
-    def download(self, provider='aws', cache=True):
+    def download(self, provider='aws', cache=True, destination=None):
         """
         Download the data from the given provider
         
@@ -115,9 +115,11 @@ class CloudRecordMixin:
             A short name of the data provider: prem, aws, azure, gc etc
         cache : bool
             If True (default), use file in cache if present.
+        destination: str
+            The destination path to save the downloaded file (default: None).
         """
         
-        return self._cloudHanlder.download(provider, cache)
+        return self._cloudHanlder.download(provider, cache, destination)
         
     
     
@@ -180,7 +182,7 @@ class CloudResultsMixin:
         self._cloudHanlder = cloudHandler
 
     
-    def download(self, provider='aws', cache=True):
+    def download(self, provider='aws', cache=True, destination=None):
         """
         Download data for *all* rows from the given provider
         
@@ -190,6 +192,8 @@ class CloudResultsMixin:
             prem, aws, azure, gc etc
         cache : bool
             If True (default), use file in cache if present.
+        destination: str
+            The destination path to save the downloaded file (default: None).
         
         """
-        return self._cloudHanlder.download(provider, cache)
+        return self._cloudHanlder.download(provider, cache, destination)

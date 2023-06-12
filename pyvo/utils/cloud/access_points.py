@@ -249,27 +249,41 @@ class PREMAccessPoint(AccessPoint):
         
         return self._accessible
         
-    
-    def download(self, cache=True):
+    def download(self, cache=True, destination=None):
         """Download data from this access point
-        
+
         Parameters
         ----------
         cache : bool
-            If True (default), use file in cache if present.
-        
-        Return
-        ------
-        path : str
-            Returns the local path that the file was download to.
+            Whether to use cached version of the file if available (default: True).
+        destination: str
+            The destination path to save the downloaded file (default: None).
+
+        Returns:
+            str: Returns the local path that the file was download to.
             
         """
         
         if self.url is None:
             raise ValueError(f'No on-prem url has been defined.')
-            
-        path = download_file(self.url, cache=cache)
-        return path
+        
+        if not destination:
+            # If destination is not specified, use the filename from the URL
+            filename = os.path.basename(self.url)
+            destination = os.path.join(os.getcwd(), filename)
+
+        if cache and os.path.exists(destination):
+            # If caching is enabled and the file already exists, return the cached file path
+            return destination
+
+        # Download the file
+        response = requests.get(self.url)
+        response.raise_for_status()
+
+        with open(destination, 'wb') as file:
+            file.write(response.content)
+
+        return destination
     
 
 class AWSAccessPoint(AccessPoint):
@@ -399,7 +413,7 @@ class AWSAccessPoint(AccessPoint):
     
     
     # adapted from astroquery.mast.
-    def download(self, cache=True):
+    def download(self, cache=True, destination=None):
         """
         downloads the product used in inializing this object into
         the given directory.
@@ -408,7 +422,9 @@ class AWSAccessPoint(AccessPoint):
         Parameters
         ----------
         cache : bool
-            If True (default), use file in cache if present.
+            Whether to use cached version of the file if available (default: True).
+        destination: str
+            The destination path to save the downloaded file (default: None).
             
         """
         
@@ -422,7 +438,10 @@ class AWSAccessPoint(AccessPoint):
         if not key:
             raise Exception(f"Unable to locate file {key}.")
 
-        local_path = Path(key).name
+        filename = Path(key).name
+        if not destination:
+            destination = os.path.join(os.getcwd(), filename)
+        local_path = destination
 
         # Ask the webserver what the expected content length is and use that.
         info_lookup = s3_client.head_object(Bucket=bucket_name, Key=key)

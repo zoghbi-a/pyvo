@@ -435,7 +435,7 @@ class CloudHandler:
         return uris
     
     
-    def download(self, provider='aws', cache=True):
+    def download(self, provider='aws', cache=True, destination=None):
         """
         Download the data from the given provider
         
@@ -445,6 +445,8 @@ class CloudHandler:
             A short name of the data provider: prem, aws, azure, gc etc
         cache : bool
             If True (default), use file in cache if present.
+        destination: str
+            The destination path to save the downloaded file (default: None).
             
         """
         
@@ -469,7 +471,7 @@ class CloudHandler:
                 for ap in access_points:
                     accessible, msg = ap.accessible
                     if accessible:
-                        path = ap.download(cache)
+                        path = ap.download(cache, destination)
                         break
                     else:
                         msgs.append(msg)
