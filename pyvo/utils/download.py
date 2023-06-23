@@ -16,15 +16,13 @@ import botocore
 
 from .http import use_session
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(name)s | %(message)s")
-log = logging.getLogger('pyvo')
-
 # adapted from astroquery._download_file.
 def http_download(url,
                   local_filepath=None,
                   cache=False,
                   timeout=None,
                   session=None,
+                  verbose=False,
                   **kwargs):
     """Download file from perm url
     
@@ -40,6 +38,8 @@ def http_download(url,
         Time to attempt download before failing
     session: requests.Session
         Session to use. If None, create a new one.
+    verbose: bool
+        If True, print progress and debug text
         
     Keywords
     --------
@@ -62,7 +62,8 @@ def http_download(url,
     if 'content-length' in response.headers:
         length = int(response.headers['content-length'])
         if length == 0:
-            log.warning(f'URL {url} has length=0')
+            if verbose:
+                print(f'URL {url} has length=0')
     else:
         length = None
 
@@ -71,15 +72,17 @@ def http_download(url,
         if length is not None:
             statinfo = os.stat(local_filepath)
             if statinfo.st_size != length:
-                log.warning(f'Found cached file {local_filepath} with size {statinfo.st_size} '
-                            f'that is different from expected size {length}')
+                if verbose:
+                    print(f'Found cached file {local_filepath} with size {statinfo.st_size} '
+                          f'that is different from expected size {length}')
             else:
-                log.info((f'Found cached file {local_filepath} '
-                          f'with the expected size.'))
+                if verbose:
+                    print(f'Found cached file {local_filepath} with the expected size.')
                 response.close()
                 return
         else:
-            log.info("Found cached file {0}.".format(local_filepath))
+            if verbose:
+                print(f'Found cached file {local_filepath}.')
             response.close()
             return
     else:
@@ -89,8 +92,9 @@ def http_download(url,
 
     blocksize = astropy.utils.data.conf.download_block_size
 
-    log.debug(f"Downloading URL {url} to {local_filepath} with size {length} "
-              f"by blocks of {blocksize}")
+    if verbose:
+        print(f'Downloading URL {url} to {local_filepath} with size {length} '
+              f'by blocks of {blocksize}')
 
     n_bytes = 0
     with ProgressBarOrSpinner(length, f'Downloading URL {url} to {local_filepath} ...') as pb:
@@ -143,7 +147,8 @@ def aws_download(uri=None,
                  cache=False,
                  timeout=None,
                  aws_profile=None,
-                 session=None):
+                 session=None,
+                 versboe=False):
     """Download file from AWS.
 
     Adapted from astroquery.mast
@@ -170,6 +175,8 @@ def aws_download(uri=None,
     session: boto3.session.Session
         Session to use that include authentication if needed. 
         If None, create an annonymous one. If given, aws_profile is ignored
+    verbose: bool
+        If True, print progress and debug text
 
     """
 
@@ -180,7 +187,8 @@ def aws_download(uri=None,
         parsed = urlparse(uri, allow_fragments=False)
         bucket_name = parsed.netloc
         key = parsed.path[1:]
-    log.debug(f'bucket: {bucket_name}, key: {key}')
+    if verbose:
+        print(f'bucket: {bucket_name}, key: {key}')
 
     if not local_filepath:
         local_filepath = split(key)[-1]
@@ -202,14 +210,16 @@ def aws_download(uri=None,
 
     # check access
     accessible, message1 = _s3_is_accessible(s3_resource, bucket_name, key)
-    log.debug(f'Access with profile or annonymous: {accessible}. Message: {message1}')
+    if verbose:
+        print(f'Access with profile or annonymous: {accessible}. Message: {message1}')
 
     # If access with profile fails, attemp to use any credientials
     # in the user system e.g. environment variables etc. boto3 should find them.
     if not accessible:
         s3_resource = boto3.resource(service_name='s3')
         accessible, message2 = _s3_is_accessible(s3_resource, bucket_name, key)
-        log.debug(f'Access with system credentials: {accessible}. Message: {message1}')
+        if verbose:
+            print(f'Access with system credentials: {accessible}. Message: {message1}')
         # is still not accessible, fail
         if not accessible:
             raise PermissionError((f'{key} in {bucket_name} is '
@@ -230,10 +240,12 @@ def aws_download(uri=None,
             statinfo = os.stat(local_filepath)
             if statinfo.st_size == length:
                 # found cached file with expected size. Stop
-                log.info("Found cached file {0}.".format(local_filepath))
+                if verbose:
+                    print(f'Found cached file {local_filepath}.')
                 return
-            log.warning(f"Found cached file {local_filepath} with size {statinfo.st_size} "
-                        f"that is different from expected size {length}")
+            if verbose:
+                print(f'Found cached file {local_filepath} with size {statinfo.st_size} '
+                      f'that is different from expected size {length}')
 
     with ProgressBarOrSpinner(length, (f'Downloading {key} to {local_filepath} ...')) as pb:
 
