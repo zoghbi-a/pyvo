@@ -2,7 +2,6 @@
 """
 Utilties for downloading data
 """
-import logging
 import threading
 import os
 from urllib.parse import urlparse
@@ -10,9 +9,6 @@ from posixpath import split
 
 import astropy
 from astropy.utils.console import ProgressBarOrSpinner
-
-import boto3
-import botocore
 
 from .http import use_session
 
@@ -92,10 +88,6 @@ def http_download(url,
 
     blocksize = astropy.utils.data.conf.download_block_size
 
-    if verbose:
-        print(f'Downloading URL {url} to {local_filepath} with size {length} '
-              f'by blocks of {blocksize}')
-
     n_bytes = 0
     with ProgressBarOrSpinner(length, f'Downloading URL {url} to {local_filepath} ...') as pb:
         with open(local_filepath, 'wb') as f:
@@ -148,7 +140,7 @@ def aws_download(uri=None,
                  timeout=None,
                  aws_profile=None,
                  session=None,
-                 versboe=False):
+                 verbose=False):
     """Download file from AWS.
 
     Adapted from astroquery.mast
@@ -179,6 +171,11 @@ def aws_download(uri=None,
         If True, print progress and debug text
 
     """
+    try:
+        import boto3
+        import botocore
+    except ImportError:
+        raise ImportError('aws_download requires boto3. Make sure it is installed first')
 
     if uri is None and (bucket_name is None and key is None):
         raise ValueError('Either uri or both bucket_name and key must be given')
