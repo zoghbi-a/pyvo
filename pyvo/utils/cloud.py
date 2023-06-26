@@ -5,15 +5,11 @@ Cloud-related utils
 
 import json
 from collections import UserDict
-import logging
 
 from astropy.table import Table, Row
 from ..dal import Record, DALResults, adhoc, DALServiceError
 from .download import http_download, aws_download
 
-# set logger
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(name)s | %(message)s")
-log = logging.getLogger('pyvo')
 
 
 # global variables
@@ -21,7 +17,7 @@ JSON_COLUMN = 'cloud_access'
 
 
 
-def find_product_access(product, mode='all', urlcolumn='auto', **kwargs):
+def find_product_access(product, mode='all', urlcolumn='auto', verbose=False, **kwargs):
     """Search for data product access information in some data product.
     
     This finds all available access information from prem, aws etc.
@@ -37,6 +33,8 @@ def find_product_access(product, mode='all', urlcolumn='auto', **kwargs):
             If 'auto', try to find the url by:
                 - use getdataurl if product is either Record or DALResults
                 - Use any column that contain http links if product is Row or Table.
+    verbose: bool
+        If True, print progress and debug text
 
     Keywords
     --------
@@ -77,15 +75,15 @@ def find_product_access(product, mode='all', urlcolumn='auto', **kwargs):
     
     json_ap = [Provider() for _ in rows]
     if mode in ['json', 'all']:
-        json_ap = _process_json_column(rows)
+        json_ap = _process_json_column(rows, verbose=verbose)
     
     ucd_ap = [Provider() for _ in rows]
     if mode in ['ucd', 'all']:
-        ucd_ap = _process_ucd_column(rows)
+        ucd_ap = _process_ucd_column(rows, verbose=verbose)
     
     dl_ap = [Provider() for _ in rows]
     if mode in ['datalink', 'all']:
-        dl_ap = _process_cloud_datalinks(rows)
+        dl_ap = _process_cloud_datalinks(rows, verbose=verbose)
     
     # put them in one list of nrow lists of access points
     ap_list = [json_ap[irow] + ucd_ap[irow] + dl_ap[irow]
@@ -97,13 +95,17 @@ def find_product_access(product, mode='all', urlcolumn='auto', **kwargs):
     return ap_list
 
 
-def _process_json_column(products, colname=JSON_COLUMN):
+def _process_json_column(products, colname=JSON_COLUMN, verbose=False):
     """Look for and process any cloud information in a json column
     
     Parameters
     ----------
     products: list of Record or Row
         A list of product rows
+    colname: str
+        The name for the column that contain the cloud json information
+    verbose: bool
+        If True, print progress and debug text
        
     
     Return
@@ -114,8 +116,11 @@ def _process_json_column(products, colname=JSON_COLUMN):
     if not isinstance(products, list):
         raise ValueError('products is expected to be a list')
     
+    if verbose:
+        print(f'searching for and processing json column {colname}')
+    
     rows_access_points = []
-    for row in products:
+    for irow,row in enumerate(products):
         
         providers = Provider()
         
@@ -124,7 +129,9 @@ def _process_json_column(products, colname=JSON_COLUMN):
             jsontxt  = row[colname]
         except KeyError:
             # no json column, continue
-            rows_access_points.append({})
+            if verbose:
+                print(f'No column {colname} found for row {irow}')
+            rows_access_points.append(providers)
             continue
         
         jsonDict = json.loads(jsontxt)
@@ -139,14 +146,14 @@ def _process_json_column(products, colname=JSON_COLUMN):
                 p_params = [p_params]
             
             for ppar in p_params:
-                providers.add_provider(provider, **ppar)
+                providers.add_provider(provider, verbose=verbose, **ppar)
 
         rows_access_points.append(providers)
         
     return rows_access_points
 
 
-def _process_ucd_column(products):
+def _process_ucd_column(products, verbose=False):
     """Look for and process any cloud information in columns
     with ucd of the form: 'meta.ref.{provider}', where provider
     is: aws, gc, azure etc.
@@ -158,6 +165,8 @@ def _process_ucd_column(products):
     ----------
     products: list
         A list of Record
+    verbose: bool
+        If True, print progress and debug text
        
     
     Return
@@ -174,6 +183,9 @@ def _process_ucd_column(products):
             f'Record. Found {type(products[0])}'
         ))
     
+    if verbose:
+        print(f'searching for and processing cloud ucd column(s)')
+    
     rows_access_points = []
     for row in products:
         
@@ -183,14 +195,14 @@ def _process_ucd_column(products):
             
             uri = row.getbyucd(f'meta.ref.{provider}')
             if uri is not None:
-                providers.add_provider(provider, uri)
+                providers.add_provider(provider, uri, verbose=verbose)
         
         rows_access_points.append(providers)
 
     return rows_access_points
 
 
-def _process_cloud_datalinks(products):
+def _process_cloud_datalinks(products, verbose=False):
     """Look for and process any cloud information in datalinks
     
     Note that products needs to be a Record. astropy
@@ -200,6 +212,8 @@ def _process_cloud_datalinks(products):
     ----------
     products: list
         A list of dal.Record
+    verbose: bool
+        If True, print progress and debug text
         
     Return
     ------
@@ -214,6 +228,9 @@ def _process_cloud_datalinks(products):
             f'products has the wrong type. Expecting a list of '
             f'Record. Found {type(products[0])}'
         ))
+    
+    if verbose:
+        print(f'searching for and processing datalinks')
     
     dalResult = products[0]._results
     
@@ -264,7 +281,8 @@ def _process_cloud_datalinks(products):
             for irow in range(nrows):
                 dl_res = dl_table[dl_table['ID'] == products[irow][dl_col_id[0]]]
                 for dl_row in dl_res:
-                    rows_access_points[irow].add_provider(provider, dl_row['access_url'])
+                    rows_access_points[irow].add_provider(provider, dl_row['access_url'], 
+                                                          verbose=verbose)
     
     return rows_access_points
 
@@ -315,12 +333,17 @@ class Provider(UserDict):
         
         Keywords
         --------
-        The parameters needed for each provider.
+        verbose: bool
+            If True, print progress and debug text
+        
+        Other parameters needed for each provider.
         The list is in the values of Provider.PROVIDERS
         
         """
         if not provider in self.PROVIDERS:
             raise ValueError(f'provider: {provider} is not supported')
+        
+        verbose = kwargs.pop('verbose', False)
         
         if uri is not None:
             if not isinstance(uri, str):
@@ -332,7 +355,8 @@ class Provider(UserDict):
         if uri is not None:
             for link in self[provider]:
                 if uri == link[0]:
-                    log.debug(f'uri {uri} already exists. skipping ...')
+                    if verbose:
+                        print(f'uri {uri} already exists. skipping ...')
                     return
         
         
@@ -349,6 +373,7 @@ class Provider(UserDict):
                  local_filepath=None,
                  cache=False,
                  timeout=None,
+                 verbose=False,
                  **kwargs):
         """Download data from provider to local_filepath
         
@@ -362,6 +387,8 @@ class Provider(UserDict):
             If True, check if a cached file exists before download
         timeout: int
             Time to attempt download before failing
+        verbose: bool
+            If True, print progress and debug text
         
         Keywords
         --------
@@ -379,18 +406,27 @@ class Provider(UserDict):
         download_links = self[provider]
         func_keys = self.PROVIDERS[provider]
         
-
+        errors = ''
         for link in download_links:
             kpars = {k:v for k,v in zip(func_keys, link)}
-            kpars.update(local_filepath=local_filepath, cache=cache, timeout=timeout)
+            kpars.update(local_filepath=local_filepath, cache=cache, 
+                         timeout=timeout, verbose=verbose)
             kpars.update(**kwargs)
             try:
-                log.info(f'Downloading from {provider} ...')
+                if verbose:
+                    print(f'Downloading from {provider} ...')
                 download_func(**kpars)
-                break
+                return
             except Exception as e:
-                log.info(f'Downloading from {provider} failed: {str(e)}')
+                err_msg = f'Downloading from {provider} failed: {str(e)}'
+                if verbose:
+                    print(err_msg)
                 if link != download_links[-1]:
-                    log.info(f'Trying other available links.')
-            
+                    msg2 = 'Trying other available links.'
+                    if verbose:
+                        print(msg2)
+                    err_msg += f'\n{msg2}'
+                errors += f'\n{err_msg}'
+        # if we are here, then download has failed. Report the errors
+        raise RuntimeError(errors)
         
